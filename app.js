@@ -75,7 +75,9 @@ async function loadCalendarData() {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
     const end = new Date(now.getFullYear(), now.getMonth() + 2, 0).toISOString();
-    const res = await fetch(`${GAS_WEBAPP_URL}?action=calendar&start=${start}&end=${end}`);
+    const url = `${GAS_WEBAPP_URL}?action=calendar&start=${start}&end=${end}`;
+    const res = await fetch(url, { redirect: 'follow', mode: 'cors' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     if (json.success && json.events) {
       calendarEvents = json.events;
