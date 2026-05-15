@@ -581,7 +581,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ===== GAS WebApp URL =====
 // デプロイ後にここにURLを設定してください
-const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx2AiGQCpXq2MtCJivMUnMQo83A0lrn6gXIfF9Y1PqEZFFtPQh38aOsu0vQPY1PVFT_7A/exec';
+const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwkG3VmSjPZ07xmapIeejCGlvgjlB5oQuTfdgqXCk2X4fIsXPci4PpZwNGdNC3AK_ZGEw/exec';
 
 // ===== Modal =====
 let selectedFile = null;
