@@ -394,8 +394,10 @@ function renderCalendar() {
     const sheetEvents = data.filter(item => {
       const dl = parseDate(item['締切日']);
       const ad = parseDate(item['オーディション日']);
+      const rd = parseDate(item['結果発表日']);
       return (dl && dl.getDate()===d && dl.getMonth()===calMonth && dl.getFullYear()===calYear) ||
-             (ad && ad.getDate()===d && ad.getMonth()===calMonth && ad.getFullYear()===calYear);
+             (ad && ad.getDate()===d && ad.getMonth()===calMonth && ad.getFullYear()===calYear) ||
+             (rd && rd.getDate()===d && rd.getMonth()===calMonth && rd.getFullYear()===calYear);
     });
     // Googleカレンダーのイベント
     const gcalEvents = filteredCalEvents.filter(ev => {
@@ -408,10 +410,12 @@ function renderCalendar() {
     // スプレッドシートイベント表示
     sheetEvents.forEach(ev => {
       const isDl = parseDate(ev['締切日'])?.getDate()===d;
-      const icon = isDl ? '〆' : '🎤';
+      const isRd = parseDate(ev['結果発表日'])?.getDate()===d;
+      const icon = isRd ? '📋' : isDl ? '〆' : '🎤';
       const name = ev['オーディション名'] || '';
       const shortName = name.length > 10 ? name.substring(0,10)+'…' : name;
-      html += `<div class="cal-event cal-sheet" style="background:${talentColor(ev['タレント名'])}" title="${ev['タレント名']}: ${name}">${icon} ${shortName}</div>`;
+      const label = isRd ? '結果' : '';
+      html += `<div class="cal-event cal-sheet${isRd?' cal-result':''}" style="background:${talentColor(ev['タレント名'])}${isRd?'cc':''}" title="${ev['タレント名']}: ${name}${isRd?' [結果発表]':''}">${icon} ${label}${shortName}</div>`;
     });
     // Googleカレンダーイベント表示
     gcalEvents.slice(0, 3).forEach(ev => {
@@ -429,7 +433,7 @@ function renderCalendar() {
   // Legend
   document.getElementById('calLegend').innerHTML = Object.keys(TALENT_COLORS).map(t =>
     `<div class="cal-legend-item"><span class="cal-legend-dot" style="background:${talentColor(t)}"></span>${t}</div>`
-  ).join('') + '<div class="cal-legend-item"><span style="font-size:.7rem">〆=締切 🎤=AD 📅=Googleカレンダー</span></div>';
+  ).join('') + '<div class="cal-legend-item"><span style="font-size:.7rem">〆=締切 🎤=AD 📋=結果発表 📅=Googleカレンダー</span></div>';
 
   // カレンダー月変更時にデータ再取得
   loadCalendarDataForMonth();
@@ -662,6 +666,7 @@ async function handleAddSubmit(e) {
     genre: document.getElementById('f-genre').value,
     deadline: deadline,
     auditionDate: audDate,
+    resultDate: (document.getElementById('f-result-date').value || '').replace(/-/g, '/'),
     status: document.getElementById('f-status').value,
     owner: document.getElementById('f-owner').value,
     action: document.getElementById('f-action').value,

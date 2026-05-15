@@ -56,7 +56,8 @@ function doPost(e) {
       data.notes || '',
       today,
       today,
-      fileUrl
+      fileUrl,
+      data.resultDate || ''
     ]);
     
     return ContentService
