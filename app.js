@@ -408,7 +408,10 @@ function renderCalendar() {
     // スプレッドシートイベント表示
     sheetEvents.forEach(ev => {
       const isDl = parseDate(ev['締切日'])?.getDate()===d;
-      html += `<div class="cal-event" style="background:${talentColor(ev['タレント名'])}" title="${ev['タレント名']}: ${ev['オーディション名']}">${isDl?'〆':'🎤'}${ev['タレント名'].charAt(0)}</div>`;
+      const icon = isDl ? '〆' : '🎤';
+      const name = ev['オーディション名'] || '';
+      const shortName = name.length > 10 ? name.substring(0,10)+'…' : name;
+      html += `<div class="cal-event cal-sheet" style="background:${talentColor(ev['タレント名'])}" title="${ev['タレント名']}: ${name}">${icon} ${shortName}</div>`;
     });
     // Googleカレンダーイベント表示
     gcalEvents.slice(0, 3).forEach(ev => {

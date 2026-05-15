@@ -551,6 +551,17 @@ body { font-family: var(--font); background: var(--bg-alt); color: var(--text); 
 }
 
 /* ===== Google Calendar Events ===== */
+.cal-sheet {
+  font-size: .55rem !important;
+  border-radius: 3px !important;
+  padding: 1px 4px !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #fff;
+  cursor: default;
+  line-height: 1.4;
+}
 .cal-gcal {
   font-size: .55rem !important;
   border-radius: 3px !important;
@@ -560,12 +571,14 @@ body { font-family: var(--font); background: var(--bg-alt); color: var(--text); 
   text-overflow: ellipsis;
   color: #fff;
   cursor: default;
+  line-height: 1.4;
 }
-.cal-gcal:hover {
+.cal-sheet:hover, .cal-gcal:hover {
   overflow: visible;
   white-space: normal;
   z-index: 10;
   position: relative;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
 }
 .cal-more {
   background: rgba(0,0,0,.3) !important;
