@@ -57,7 +57,8 @@ function doPost(e) {
       today,
       today,
       fileUrl,
-      data.resultDate || ''
+      data.resultDate || '',
+      data.releaseDate || ''
     ]);
     
     return ContentService

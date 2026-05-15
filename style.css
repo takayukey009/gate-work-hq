@@ -565,6 +565,9 @@ body { font-family: var(--font); background: var(--bg-alt); color: var(--text); 
 .cal-sheet.cal-result {
   border: 1px dashed rgba(255,255,255,.6);
 }
+.cal-sheet.cal-release {
+  border: 1px double rgba(255,255,255,.8);
+}
 .cal-gcal {
   font-size: .55rem !important;
   border-radius: 3px !important;
