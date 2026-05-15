@@ -550,6 +550,33 @@ body { font-family: var(--font); background: var(--bg-alt); color: var(--text); 
   white-space: nowrap; color: #fff; display: inline-flex; align-items: center; gap: 3px;
 }
 
+/* ===== Google Calendar Events ===== */
+.cal-gcal {
+  font-size: .55rem !important;
+  border-radius: 3px !important;
+  padding: 1px 4px !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #fff;
+  cursor: default;
+}
+.cal-gcal:hover {
+  overflow: visible;
+  white-space: normal;
+  z-index: 10;
+  position: relative;
+}
+.cal-more {
+  background: rgba(0,0,0,.3) !important;
+  font-size: .55rem !important;
+  text-align: center;
+  color: #fff;
+  border-radius: 3px !important;
+  padding: 1px 3px !important;
+  cursor: default;
+}
+
 /* ===== Mobile Modal ===== */
 @media (max-width: 768px) {
   .fab { bottom: 20px; right: 20px; width: 56px; height: 56px; }

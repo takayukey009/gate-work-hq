@@ -16,6 +16,7 @@ const TYPE_ICONS = {'オーディション':'🎤','オファー':'📩','レギ
 const TYPE_COLORS = {'オーディション':'#e2000f','オファー':'#10B981','レギュラー':'#3B82F6','イベント':'#F59E0B','撮影':'#8B5CF6','その他':'#6B7280'};
 
 let allData = [];
+let calendarEvents = [];
 let currentTalent = 'all';
 let currentSection = 'dashboard';
 let calYear, calMonth;
@@ -64,6 +65,26 @@ async function loadData() {
   }
   // 売上データを非同期で取得（ダッシュボード表示後）
   loadSalesData();
+  // カレンダーデータを非同期で取得
+  loadCalendarData();
+}
+
+async function loadCalendarData() {
+  if (!GAS_WEBAPP_URL) return;
+  try {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+    const end = new Date(now.getFullYear(), now.getMonth() + 2, 0).toISOString();
+    const res = await fetch(`${GAS_WEBAPP_URL}?action=calendar&start=${start}&end=${end}`);
+    const json = await res.json();
+    if (json.success && json.events) {
+      calendarEvents = json.events;
+      console.log(`カレンダー: ${calendarEvents.length}件取得`);
+      if (currentSection === 'calendar') renderCalendar();
+    }
+  } catch (e) {
+    console.warn('カレンダーデータ取得失敗:', e.message);
+  }
 }
 
 function getFiltered() {
@@ -360,21 +381,44 @@ function renderCalendar() {
   const today = now.getDate();
   const data = getFiltered();
 
+  // Googleカレンダーイベントをフィルタ
+  const filteredCalEvents = calendarEvents.filter(ev => {
+    if (currentTalent !== 'all' && ev.talent !== currentTalent) return false;
+    return true;
+  });
+
   for (let i = 0; i < firstDay; i++) html += '<div class="cal-cell other-month"></div>';
   for (let d = 1; d <= daysInMonth; d++) {
     const isToday = d === today && calMonth === now.getMonth() && calYear === now.getFullYear();
-    const dateStr = `${calYear}/${calMonth+1}/${d}`;
-    const events = data.filter(item => {
+    // スプレッドシートの案件イベント
+    const sheetEvents = data.filter(item => {
       const dl = parseDate(item['締切日']);
       const ad = parseDate(item['オーディション日']);
       return (dl && dl.getDate()===d && dl.getMonth()===calMonth && dl.getFullYear()===calYear) ||
              (ad && ad.getDate()===d && ad.getMonth()===calMonth && ad.getFullYear()===calYear);
     });
+    // Googleカレンダーのイベント
+    const gcalEvents = filteredCalEvents.filter(ev => {
+      const evDate = new Date(ev.start);
+      return evDate.getDate()===d && evDate.getMonth()===calMonth && evDate.getFullYear()===calYear;
+    });
+
+    const totalEvents = sheetEvents.length + gcalEvents.length;
     html += `<div class="cal-cell ${isToday?'today':''}"><div class="cal-day">${d}</div>`;
-    events.forEach(ev => {
+    // スプレッドシートイベント表示
+    sheetEvents.forEach(ev => {
       const isDl = parseDate(ev['締切日'])?.getDate()===d;
       html += `<div class="cal-event" style="background:${talentColor(ev['タレント名'])}" title="${ev['タレント名']}: ${ev['オーディション名']}">${isDl?'〆':'🎤'}${ev['タレント名'].charAt(0)}</div>`;
     });
+    // Googleカレンダーイベント表示
+    gcalEvents.slice(0, 3).forEach(ev => {
+      const timeStr = ev.allDay ? '' : new Date(ev.start).getHours() + ':'+ String(new Date(ev.start).getMinutes()).padStart(2,'0') + ' ';
+      const shortTitle = ev.title.length > 8 ? ev.title.substring(0,8)+'…' : ev.title;
+      html += `<div class="cal-event cal-gcal" style="background:${talentColor(ev.talent)}88;border-left:2px solid ${talentColor(ev.talent)}" title="📅 ${ev.talent}: ${ev.title}${ev.location ? '\n📍'+ev.location : ''}">${timeStr}${shortTitle}</div>`;
+    });
+    if (gcalEvents.length > 3) {
+      html += `<div class="cal-event cal-more">+${gcalEvents.length - 3}件</div>`;
+    }
     html += '</div>';
   }
   grid.innerHTML = html;
@@ -382,7 +426,30 @@ function renderCalendar() {
   // Legend
   document.getElementById('calLegend').innerHTML = Object.keys(TALENT_COLORS).map(t =>
     `<div class="cal-legend-item"><span class="cal-legend-dot" style="background:${talentColor(t)}"></span>${t}</div>`
-  ).join('') + '<div class="cal-legend-item"><span style="font-size:.7rem">〆=締切 🎤=オーディション日</span></div>';
+  ).join('') + '<div class="cal-legend-item"><span style="font-size:.7rem">〆=締切 🎤=AD 📅=Googleカレンダー</span></div>';
+
+  // カレンダー月変更時にデータ再取得
+  loadCalendarDataForMonth();
+}
+
+async function loadCalendarDataForMonth() {
+  if (!GAS_WEBAPP_URL) return;
+  try {
+    const start = new Date(calYear, calMonth, 1).toISOString();
+    const end = new Date(calYear, calMonth + 1, 0, 23, 59, 59).toISOString();
+    // 既にデータがあるか確認
+    const hasData = calendarEvents.some(ev => {
+      const d = new Date(ev.start);
+      return d.getMonth() === calMonth && d.getFullYear() === calYear;
+    });
+    if (hasData) return;
+    const res = await fetch(`${GAS_WEBAPP_URL}?action=calendar&start=${start}&end=${end}`);
+    const json = await res.json();
+    if (json.success && json.events) {
+      calendarEvents = [...calendarEvents, ...json.events];
+      renderCalendar();
+    }
+  } catch (e) { /* silent */ }
 }
 
 // ===== Stats Detail =====
