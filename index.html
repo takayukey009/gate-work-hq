@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>案件管理 | GATE inc.</title>
+    <meta name="description" content="GATE株式会社 全タレント横断オーディション管理ダッシュボード">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+JP:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-wrap">
+                <span class="logo-main">GATE</span>
+                <span class="logo-sub">WORK HQ</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active" data-section="dashboard" id="nav-dashboard">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                <span>ダッシュボード</span>
+            </a>
+            <a href="#" class="nav-item" data-section="kanban" id="nav-kanban">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg>
+                <span>カンバン</span>
+            </a>
+            <a href="#" class="nav-item" data-section="works" id="nav-works">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+                <span>仕事一覧</span>
+            </a>
+            <a href="#" class="nav-item" data-section="list" id="nav-list">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                <span>リスト</span>
+            </a>
+            <a href="#" class="nav-item" data-section="calendar" id="nav-calendar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <span>カレンダー</span>
+            </a>
+            <a href="#" class="nav-item" data-section="stats" id="nav-stats">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                <span>統計</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <a href="https://docs.google.com/spreadsheets/d/1NBZce4Xqx7FgbXujQlaO15xd-nAZvUmAqBVGRBgIaGU/edit" target="_blank" class="btn btn-edit-sheet">
+                📊 スプレッドシートを編集
+            </a>
+            <button class="btn btn-secondary btn-refresh" onclick="location.reload()">🔄 データ更新</button>
+        </div>
+    </aside>
+
+    <!-- Mobile Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent">
+        <!-- Top Bar -->
+        <header class="top-bar">
+            <div class="top-bar-left">
+                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="メニュー">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+                </button>
+                <h1 class="page-title" id="pageTitle">ダッシュボード</h1>
+            </div>
+            <div class="top-bar-right">
+                <div class="talent-filter" id="talentFilter">
+                    <!-- Rendered by JS -->
+                </div>
+                <div class="current-date" id="currentDate"></div>
+            </div>
+        </header>
+
+        <!-- ===== DASHBOARD ===== -->
+        <section class="content-section active" id="section-dashboard">
+            <!-- Stats Row -->
+            <div class="stats-grid" id="statsGrid">
+                <!-- Rendered by JS -->
+            </div>
+
+            <!-- Action Required Panel -->
+            <div class="action-panel" id="actionPanel">
+                <div class="action-panel-header">
+                    <h2>⚡ マネージャー対応待ち</h2>
+                    <span class="action-badge" id="actionCount">0</span>
+                </div>
+                <div class="action-list" id="actionList">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+
+            <!-- Dashboard Grid -->
+            <div class="dashboard-grid">
+                <!-- Upcoming Deadlines -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><span class="accent-letter">D</span>EADLINES</h3>
+                        <span class="card-subtitle">今後2週間</span>
+                    </div>
+                    <div class="card-body" id="dashDeadlines"></div>
+                </div>
+
+                <!-- Recent Updates -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><span class="accent-letter">R</span>ECENT</h3>
+                        <span class="card-subtitle">最近の更新</span>
+                    </div>
+                    <div class="card-body" id="dashRecent"></div>
+                </div>
+
+                <!-- Talent Summary -->
+                <div class="card card-wide">
+                    <div class="card-header">
+                        <h3><span class="accent-letter">T</span>ALENT</h3>
+                        <span class="card-subtitle">タレント別サマリー</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="talent-summary-grid" id="talentSummary"></div>
+                    </div>
+                </div>
+
+                <!-- Sales Performance -->
+                <div class="card card-wide">
+                    <div class="card-header">
+                        <h3><span class="accent-letter">S</span>ALES</h3>
+                        <span class="card-subtitle">タレント別売上実績（2025年度）</span>
+                    </div>
+                    <div class="card-body" id="salesCard">
+                        <div class="sales-loading" id="salesLoading">📊 売上データ読み込み中...</div>
+                        <div class="sales-grid" id="salesGrid" style="display:none"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== KANBAN ===== -->
+        <section class="content-section" id="section-kanban">
+            <div class="kanban-board" id="kanbanBoard">
+                <div class="kanban-column" data-status="情報収集">
+                    <div class="kanban-header"><span class="kanban-dot dot-info"></span><h4>情報収集</h4><span class="kanban-count" id="count-info">0</span></div>
+                    <div class="kanban-cards" id="cards-info"></div>
+                </div>
+                <div class="kanban-column" data-status="応募準備">
+                    <div class="kanban-header"><span class="kanban-dot dot-prep"></span><h4>応募準備</h4><span class="kanban-count" id="count-prep">0</span></div>
+                    <div class="kanban-cards" id="cards-prep"></div>
+                </div>
+                <div class="kanban-column" data-status="書類送付済">
+                    <div class="kanban-header"><span class="kanban-dot dot-sent"></span><h4>書類送付済</h4><span class="kanban-count" id="count-sent">0</span></div>
+                    <div class="kanban-cards" id="cards-sent"></div>
+                </div>
+                <div class="kanban-column" data-status="オーディション済">
+                    <div class="kanban-header"><span class="kanban-dot dot-done"></span><h4>オーディション済</h4><span class="kanban-count" id="count-done">0</span></div>
+                    <div class="kanban-cards" id="cards-done"></div>
+                </div>
+                <div class="kanban-column" data-status="結果待ち">
+                    <div class="kanban-header"><span class="kanban-dot dot-wait"></span><h4>結果待ち</h4><span class="kanban-count" id="count-wait">0</span></div>
+                    <div class="kanban-cards" id="cards-wait"></div>
+                </div>
+                <div class="kanban-column" data-status="完了">
+                    <div class="kanban-header"><span class="kanban-dot dot-complete"></span><h4>完了</h4><span class="kanban-count" id="count-complete">0</span></div>
+                    <div class="kanban-cards" id="cards-complete"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== LIST ===== -->
+        <section class="content-section" id="section-list">
+            <div class="section-toolbar">
+                <div class="search-box-list">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" placeholder="オーディション名で検索..." id="listSearch">
+                </div>
+                <div class="filter-group" id="statusFilter">
+                    <button class="filter-btn active" data-filter="all">すべて</button>
+                    <button class="filter-btn" data-filter="active">進行中</button>
+                    <button class="filter-btn" data-filter="合格">合格</button>
+                    <button class="filter-btn" data-filter="不合格">不合格</button>
+                </div>
+            </div>
+            <div class="list-table-wrap">
+                <table class="list-table" id="listTable">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="talent">タレント</th>
+                            <th class="sortable" data-sort="name">オーディション名</th>
+                            <th>ジャンル</th>
+                            <th class="sortable" data-sort="deadline">締切</th>
+                            <th>ステータス</th>
+                            <th>対応者</th>
+                            <th>結果</th>
+                            <th>アクション</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ===== CALENDAR ===== -->
+        <section class="content-section" id="section-calendar">
+            <div class="section-toolbar">
+                <button class="btn btn-secondary" id="calPrev">← 前月</button>
+                <h3 class="cal-month-title" id="calMonthTitle"></h3>
+                <button class="btn btn-secondary" id="calNext">次月 →</button>
+            </div>
+            <div class="cal-grid" id="calGrid">
+                <!-- Rendered by JS -->
+            </div>
+            <div class="cal-legend" id="calLegend"></div>
+        </section>
+
+        <!-- ===== STATS ===== -->
+        <section class="content-section" id="section-stats">
+            <div class="stats-detail-grid">
+                <div class="card">
+                    <div class="card-header"><h3>📊 タレント別 応募数 / 合格率</h3></div>
+                    <div class="card-body" id="statsTalent"></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>🎬 ジャンル別 分布</h3></div>
+                    <div class="card-body" id="statsGenre"></div>
+                </div>
+                <div class="card card-wide">
+                    <div class="card-header"><h3>📈 月次推移</h3></div>
+                    <div class="card-body" id="statsMonthly"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== WORKS ===== -->
+        <section class="content-section" id="section-works">
+            <div class="section-toolbar">
+                <div class="search-box-list">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" placeholder="案件名で検索..." id="worksSearch">
+                </div>
+                <div class="filter-group" id="worksTypeFilter">
+                    <button class="filter-btn active" data-wfilter="all">すべて</button>
+                    <button class="filter-btn" data-wfilter="オーディション">🎤 AD</button>
+                    <button class="filter-btn" data-wfilter="オファー">📩 オファー</button>
+                    <button class="filter-btn" data-wfilter="レギュラー">📺 レギュラー</button>
+                    <button class="filter-btn" data-wfilter="イベント">🎪 イベント</button>
+                    <button class="filter-btn" data-wfilter="撮影">📸 撮影</button>
+                </div>
+            </div>
+            <div class="works-summary" id="worksSummary"></div>
+            <div class="list-table-wrap">
+                <table class="list-table" id="worksTable">
+                    <thead>
+                        <tr>
+                            <th>種別</th>
+                            <th>タレント</th>
+                            <th>案件名</th>
+                            <th>ジャンル</th>
+                            <th>日程</th>
+                            <th>ステータス</th>
+                            <th>対応者</th>
+                            <th>備考</th>
+                        </tr>
+                    </thead>
+                    <tbody id="worksBody"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- FAB: 新規追加ボタン -->
+    <button class="fab" id="fabAdd" onclick="openAddModal()" title="新規オーディション追加">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+
+    <!-- 新規追加モーダル -->
+    <div class="modal-overlay" id="addModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>＋ 案件追加</h2>
+                <button class="modal-close" onclick="closeAddModal()">✕</button>
+            </div>
+            <form id="addForm" onsubmit="return handleAddSubmit(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="f-type">案件種別 *</label>
+                        <select id="f-type" required>
+                            <option value="オーディション">🎤 オーディション</option>
+                            <option value="オファー">📩 オファー（指名・直接依頼）</option>
+                            <option value="レギュラー">📺 レギュラー</option>
+                            <option value="イベント">🎪 イベント・舞台</option>
+                            <option value="撮影">📸 撮影</option>
+                            <option value="その他">📋 その他</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="f-talent">タレント名 *</label>
+                        <select id="f-talent" required>
+                            <option value="">選択...</option>
+                            <option value="谷口彩菜">🌸 谷口彩菜</option>
+                            <option value="寺崎ひな">⭐ 寺崎ひな</option>
+                            <option value="小久保宏紀">🎭 小久保宏紀</option>
+                            <option value="島田和奏">🌟 島田和奏</option>
+                            <option value="中塚智">🎬 中塚智</option>
+                            <option value="太田陽菜">🌻 太田陽菜</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="f-genre">ジャンル *</label>
+                        <select id="f-genre" required>
+                            <option value="">選択...</option>
+                            <option value="映画">🎬 映画</option>
+                            <option value="ドラマ">📺 ドラマ</option>
+                            <option value="舞台">🎭 舞台</option>
+                            <option value="CM">📢 CM</option>
+                            <option value="MV">🎵 MV</option>
+                            <option value="Web">🌐 Web</option>
+                            <option value="広告">📸 広告</option>
+                            <option value="ショートドラマ">📱 ショートドラマ</option>
+                            <option value="バラエティ">🎪 バラエティ</option>
+                        </select>
+                    </div>
+                    <div class="form-group form-wide">
+                        <label for="f-name">案件名 *</label>
+                        <input type="text" id="f-name" placeholder="例: 映画『〇〇』主演キャスト / NHKドラマ レギュラー" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="f-deadline">締切日</label>
+                        <input type="date" id="f-deadline">
+                    </div>
+                    <div class="form-group">
+                        <label>オーディション日</label>
+                        <div class="auddate-list" id="auddateList">
+                            <div class="auddate-row">
+                                <input type="date" class="auddate-input">
+                                <button type="button" class="auddate-remove" onclick="removeAudDate(this)" title="削除">✕</button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-add-date" onclick="addAudDate()">＋ 日程を追加</button>
+                    </div>
+                    <div class="form-group">
+                        <label for="f-status">ステータス</label>
+                        <select id="f-status">
+                            <option value="情報収集">情報収集</option>
+                            <option value="応募準備">応募準備</option>
+                            <option value="書類送付済">書類送付済</option>
+                            <option value="オーディション済">オーディション済</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="f-owner">対応者</label>
+                        <select id="f-owner">
+                            <option value="マネージャー">マネージャー</option>
+                            <option value="本人">本人</option>
+                        </select>
+                    </div>
+                    <div class="form-group form-wide">
+                        <label for="f-action">次のアクション</label>
+                        <input type="text" id="f-action" placeholder="例: プロフィール写真を更新">
+                    </div>
+                    <div class="form-group form-wide">
+                        <label for="f-notes">備考</label>
+                        <input type="text" id="f-notes" placeholder="例: ギャラ80万、監督指名あり">
+                    </div>
+                    <!-- ファイル添付 -->
+                    <div class="form-group form-wide">
+                        <label>📎 資料ファイル（AD・台本等）</label>
+                        <div class="file-drop-zone" id="fileDropZone">
+                            <input type="file" id="f-file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls" style="display:none">
+                            <div class="file-drop-content" id="fileDropContent">
+                                <span class="file-drop-icon">📁</span>
+                                <p>ファイルをドラッグ＆ドロップ<br>またはクリックして選択</p>
+                                <span class="file-drop-hint">PDF, Word, Excel, 画像 対応</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddModal()">キャンセル</button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <span id="submitText">追加する</span>
+                        <span id="submitSpinner" class="btn-spinner hidden"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Loading -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <p>データを読み込み中...</p>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
