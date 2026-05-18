@@ -274,12 +274,83 @@ function renderDeadlines() {
   }).join('');
 }
 
-// ===== Recent =====
+// ===== Recent (直近スケジュール) =====
 function renderRecent() {
-  const data = [...getFiltered()].sort((a,b) => (b['更新日']||'').localeCompare(a['更新日']||'')).slice(0, 5);
   const el = document.getElementById('dashRecent');
-  if (!data.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📝</div><p>データなし</p></div>'; return; }
-  el.innerHTML = data.map(d => `<div class="deadline-item"><div class="deadline-info"><div class="deadline-title">${d['オーディション名']}</div><div class="deadline-meta"><span class="talent-badge-sm" style="background:${talentColor(d['タレント名'])}">${d['タレント名']}</span> ${d['ステータス']} ${d['結果']&&d['結果']!=='未定'?'→ '+d['結果']:''}</div></div><span style="font-size:.7rem;color:var(--text-muted)">${fmtDate(d['更新日'])}</span></div>`).join('');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const events = [];
+
+  // スプシデータからオーディション日・公開日・結果発表日を収集
+  const sheetData = getFiltered();
+  sheetData.forEach(d => {
+    const name = d['オーディション名'] || '';
+    const talent = d['タレント名'] || '';
+
+    // オーディション日（複数日対応: カンマ区切り）
+    const audDates = (d['オーディション日'] || '').split(',').map(s => s.trim()).filter(Boolean);
+    audDates.forEach(ds => {
+      const dt = parseDate(ds);
+      if (dt && dt >= today) {
+        events.push({ date: dt, icon: '🎤', label: 'AD', name, talent, type: 'audition' });
+      }
+    });
+
+    // 公開日（OA/配信）
+    const rlDate = parseDate(d['公開日']);
+    if (rlDate && rlDate >= today) {
+      events.push({ date: rlDate, icon: '📺', label: 'OA', name, talent, type: 'release' });
+    }
+
+    // 結果発表日
+    const rdDate = parseDate(d['結果発表日']);
+    if (rdDate && rdDate >= today) {
+      events.push({ date: rdDate, icon: '📋', label: '結果', name, talent, type: 'result' });
+    }
+  });
+
+  // Googleカレンダーイベントを収集
+  const filteredCalEvents = calendarEvents.filter(ev => {
+    if (currentTalent !== 'all' && ev.talent !== currentTalent) return false;
+    const evDate = new Date(ev.start);
+    evDate.setHours(0, 0, 0, 0);
+    return evDate >= today;
+  });
+  filteredCalEvents.forEach(ev => {
+    const dt = new Date(ev.start);
+    events.push({ date: dt, icon: '📅', label: 'Gカレ', name: ev.title, talent: ev.talent || '', type: 'gcal' });
+  });
+
+  // 日付昇順ソート → 上位5件
+  events.sort((a, b) => a.date - b.date);
+  const top5 = events.slice(0, 5);
+
+  if (!top5.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>直近の予定はありません</p></div>';
+    return;
+  }
+
+  el.innerHTML = top5.map(ev => {
+    const isToday = ev.date.toDateString() === new Date().toDateString();
+    const daysLeft = Math.ceil((ev.date - new Date()) / 86400000);
+    const daysStr = isToday ? '<span style="color:var(--accent);font-weight:700">今日！</span>' : `${daysLeft}日後`;
+    const typeColor = ev.type === 'audition' ? '#e2000f' : ev.type === 'release' ? '#10B981' : ev.type === 'result' ? '#F59E0B' : '#8B5CF6';
+    const dd = ev.date;
+    return `<div class="deadline-item">
+      <div class="deadline-date">
+        <span class="day" style="color:${typeColor}">${dd.getDate()}</span>
+        <span class="month">${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][dd.getMonth()]}</span>
+      </div>
+      <div class="deadline-info">
+        <div class="deadline-title"><span style="margin-right:4px">${ev.icon}</span>${ev.name}</div>
+        <div class="deadline-meta">
+          <span class="talent-badge-sm" style="background:${talentColor(ev.talent)}">${ev.talent || ev.icon}</span>
+          <span style="font-size:.65rem;background:${typeColor}22;color:${typeColor};padding:1px 5px;border-radius:4px;font-weight:600;margin-left:4px">${ev.label}</span>
+          <span style="font-size:.65rem;color:var(--text-muted);margin-left:6px">${daysStr}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ===== Talent Summary =====
