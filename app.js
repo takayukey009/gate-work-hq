@@ -23,16 +23,60 @@ let calYear, calMonth;
 
 // ===== Data Fetch =====
 async function fetchSheetData(sheet) {
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheet)}&_=${Date.now()}`;
+  // Google Visualization APIの型の制約（日付列にあるテキストが削除される問題）を回避するため、CSVで取得
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&sheet=${encodeURIComponent(sheet)}&_=${Date.now()}`;
   const res = await fetch(url);
   const text = await res.text();
-  const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
-  const cols = json.table.cols.map(c => c.label || '');
-  return (json.table.rows || []).map(r => {
+  return parseCSV(text);
+}
+
+// 汎用CSVパーサー（改行やカンマを含むセルにも対応）
+function parseCSV(text) {
+  const result = [];
+  let cur = '';
+  let inQuote = false;
+  let row = [];
+  
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (char === '"') {
+      if (inQuote && text[i+1] === '"') {
+        cur += '"';
+        i++;
+      } else {
+        inQuote = !inQuote;
+      }
+    } else if (char === ',' && !inQuote) {
+      row.push(cur);
+      cur = '';
+    } else if ((char === '\n' || (char === '\r' && text[i+1] === '\n')) && !inQuote) {
+      if (char === '\r') i++;
+      row.push(cur);
+      result.push(row);
+      row = [];
+      cur = '';
+    } else {
+      if (char !== '\r') cur += char;
+    }
+  }
+  if (cur !== '' || row.length > 0) {
+    row.push(cur);
+    result.push(row);
+  }
+  
+  if (result.length < 2) return [];
+  
+  const headers = result[0].map(h => h.trim());
+  const data = [];
+  for (let i = 1; i < result.length; i++) {
+    if (result[i].length === 1 && result[i][0].trim() === '') continue; // 空行をスキップ
     const obj = {};
-    r.c.forEach((cell, i) => { obj[cols[i]] = cell ? (cell.v != null ? String(cell.v) : '') : ''; });
-    return obj;
-  });
+    headers.forEach((h, index) => {
+      obj[h] = result[i][index] || '';
+    });
+    data.push(obj);
+  }
+  return data;
 }
 
 const FALLBACK_DATA = [
