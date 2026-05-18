@@ -659,6 +659,8 @@ const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwkG3VmSjPZ07xma
 
 // ===== Modal =====
 let selectedFile = null;
+let selectedDriveFile = null; // Driveから選んだファイル
+let driveFilesCache = [];
 
 function openAddModal() {
   document.getElementById('addModal').classList.add('show');
@@ -670,6 +672,71 @@ function closeAddModal() {
   document.body.style.overflow = '';
   document.getElementById('addForm').reset();
   clearFile();
+  selectedDriveFile = null;
+  driveFilesCache = [];
+  switchFileTab('upload');
+}
+
+// ===== Drive File Picker =====
+function switchFileTab(tab) {
+  const tabUpload = document.getElementById('tabUpload');
+  const tabDrive  = document.getElementById('tabDrive');
+  const panelUpload = document.getElementById('panelUpload');
+  const panelDrive  = document.getElementById('panelDrive');
+  if (!tabUpload) return;
+  tabUpload.classList.toggle('active', tab === 'upload');
+  tabDrive.classList.toggle('active', tab === 'drive');
+  panelUpload.style.display = tab === 'upload' ? '' : 'none';
+  panelDrive.style.display  = tab === 'drive'  ? '' : 'none';
+  if (tab === 'drive' && driveFilesCache.length === 0) loadDriveFiles();
+}
+
+async function loadDriveFiles() {
+  const el = document.getElementById('driveFileList');
+  if (!el) return;
+  el.innerHTML = '<div class="drive-loading">📂 読み込み中...</div>';
+  try {
+    const res  = await fetch(GAS_WEBAPP_URL + '?action=folder_files');
+    const json = await res.json();
+    if (json.success && json.files) {
+      driveFilesCache = json.files;
+      renderDriveFiles(json.files);
+    } else {
+      throw new Error(json.error || '取得失敗');
+    }
+  } catch(err) {
+    el.innerHTML = `<div class="drive-loading">⚠️ 読み込みエラー: ${err.message}</div>`;
+  }
+}
+
+function renderDriveFiles(files) {
+  const el = document.getElementById('driveFileList');
+  if (!files.length) {
+    el.innerHTML = '<div class="drive-loading">📭 フォルダにファイルがありません</div>';
+    return;
+  }
+  el.innerHTML = files.map(f => {
+    const icon = f.mimeType?.includes('pdf') ? '📄'
+      : f.mimeType?.includes('image') ? '🖼️'
+      : f.mimeType?.includes('spreadsheet') ? '📊'
+      : f.mimeType?.includes('document') ? '📝' : '📎';
+    const date = new Date(f.modifiedDate).toLocaleDateString('ja-JP', {month:'numeric', day:'numeric'});
+    const sel  = selectedDriveFile?.id === f.id;
+    const safeName = f.name.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    return `<div class="drive-file-item${sel ? ' selected' : ''}" onclick="selectDriveFile('${f.id}','${safeName}','${f.url}')">
+      <span class="drive-file-icon">${icon}</span>
+      <div class="drive-file-info">
+        <div class="drive-file-name">${f.name}</div>
+        <div class="drive-file-meta">${date} 更新</div>
+      </div>
+      ${sel ? '<span class="drive-file-check">✓ 選択中</span>' : ''}
+    </div>`;
+  }).join('');
+}
+
+function selectDriveFile(id, name, url) {
+  selectedDriveFile = { id, name, url };
+  renderDriveFiles(driveFilesCache);
 }
 
 // ESCキーでモーダルを閉じる
@@ -753,11 +820,15 @@ async function handleAddSubmit(e) {
     notes: document.getElementById('f-notes').value,
   };
 
-  // ファイルをBase64に変換
-  if (selectedFile) {
+  // Driveから選択したファイルを優先
+  if (selectedDriveFile) {
+    formData.fileUrl  = selectedDriveFile.url;
+    formData.fileName = selectedDriveFile.name;
+  } else if (selectedFile) {
+    // ローカルファイルをBase64に変換
     try {
-      formData.fileBase64 = await fileToBase64(selectedFile);
-      formData.fileName = selectedFile.name;
+      formData.fileBase64  = await fileToBase64(selectedFile);
+      formData.fileName    = selectedFile.name;
       formData.fileMimeType = selectedFile.type;
     } catch (err) {
       console.warn('ファイル読み込みエラー:', err);

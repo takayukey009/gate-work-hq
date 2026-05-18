@@ -18,6 +18,7 @@
 const SPREADSHEET_ID = '1NBZce4Xqx7FgbXujQlaO15xd-nAZvUmAqBVGRBgIaGU';
 const SHEET_NAME = 'シート1';
 const DRIVE_FOLDER_ID = '1EyDWtQ_yBsGMpsw0ZKGsImFgVHjQOAhd'; // GATE_オーディション資料フォルダ
+const NANDEMO_FOLDER_ID = '1eN0gfw6f1DjFvdVoSYPrxMKxQd4t1of2'; // 何でもフォルダ
 
 // ============================================================
 // POST: 新規オーディション追加
@@ -100,6 +101,10 @@ function doGet(e) {
     return getCalendarData(e);
   }
   
+  if (action === 'folder_files') {
+    return getFolderFiles();
+  }
+  
   return ContentService
     .createTextOutput(JSON.stringify({ status: 'ok', message: 'GATE Audition API is running' }))
     .setMimeType(ContentService.MimeType.JSON);
@@ -148,6 +153,37 @@ function getCalendarData(e) {
   } catch (error) {
     return ContentService
       .createTextOutput(JSON.stringify({ success: false, error: error.message }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// ============================================================
+// 何でもフォルダのファイル一覧取得
+// ============================================================
+function getFolderFiles() {
+  try {
+    var folder = DriveApp.getFolderById(NANDEMO_FOLDER_ID);
+    var files = folder.getFiles();
+    var result = [];
+    while (files.hasNext()) {
+      var f = files.next();
+      result.push({
+        id: f.getId(),
+        name: f.getName(),
+        url: f.getUrl(),
+        mimeType: f.getMimeType(),
+        size: f.getSize(),
+        modifiedDate: f.getLastUpdated().toISOString()
+      });
+    }
+    // 更新日降順でソート
+    result.sort(function(a, b) { return b.modifiedDate.localeCompare(a.modifiedDate); });
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: true, files: result }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(e) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: false, error: e.message }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 }

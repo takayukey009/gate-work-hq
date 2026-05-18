@@ -375,12 +375,23 @@
                     <!-- ファイル添付 -->
                     <div class="form-group form-wide">
                         <label>📎 資料ファイル（AD・台本等）</label>
-                        <div class="file-drop-zone" id="fileDropZone">
-                            <input type="file" id="f-file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls" style="display:none">
-                            <div class="file-drop-content" id="fileDropContent">
-                                <span class="file-drop-icon">📁</span>
-                                <p>ファイルをドラッグ＆ドロップ<br>またはクリックして選択</p>
-                                <span class="file-drop-hint">PDF, Word, Excel, 画像 対応</span>
+                        <div class="file-tab-bar">
+                            <button type="button" class="file-tab active" id="tabUpload" onclick="switchFileTab('upload')">📁 アップロード</button>
+                            <button type="button" class="file-tab" id="tabDrive" onclick="switchFileTab('drive')">📂 Driveから選ぶ</button>
+                        </div>
+                        <div id="panelUpload">
+                            <div class="file-drop-zone" id="fileDropZone">
+                                <input type="file" id="f-file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls" style="display:none">
+                                <div class="file-drop-content" id="fileDropContent">
+                                    <span class="file-drop-icon">📁</span>
+                                    <p>ファイルをドラッグ＆ドロップ<br>またはクリックして選択</p>
+                                    <span class="file-drop-hint">PDF, Word, Excel, 画像 対応</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="panelDrive" style="display:none">
+                            <div class="drive-file-list" id="driveFileList">
+                                <div class="drive-loading">📂 「Driveから選ぶ」タブをクリックして読み込み</div>
                             </div>
                         </div>
                     </div>
