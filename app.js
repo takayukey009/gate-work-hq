@@ -254,11 +254,19 @@ function renderActionPanel() {
   }
   panel.classList.remove('empty');
   document.querySelector('.action-empty-msg')?.remove();
-  list.innerHTML = data.map(d => `<div class="action-item">
+  list.innerHTML = data.map(d => {
+    let dateInfo = '';
+    if (['書類結果待ち', '結果待ち'].includes(d['ステータス']) && d['結果発表日']) {
+      dateInfo = '発表 ' + fmtDate(d['結果発表日']);
+    } else if (d['締切日']) {
+      dateInfo = '〆 ' + fmtDate(d['締切日']);
+    }
+    return `<div class="action-item">
     <span class="action-talent-badge" style="background:${talentColor(d['タレント名'])}">${d['タレント名']}</span>
     <div class="action-info"><div class="action-title">${d['オーディション名']}</div><div class="action-desc">${d['アクション']}</div></div>
-    <span class="action-due">${d['締切日'] ? '〆 '+fmtDate(d['締切日']) : ''}</span>
-  </div>`).join('');
+    <span class="action-due">${dateInfo}</span>
+  </div>`;
+  }).join('');
 }
 
 // ===== Deadlines =====
