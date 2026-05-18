@@ -287,3 +287,49 @@ function testDoPost() {
   const result = doPost(mockEvent);
   Logger.log(result.getContent());
 }
+
+// ============================================================
+// ステータス列のドロップダウンを最新定義に更新する（手動実行用）
+// GASエディタ上でこの関数を選択して「実行」ボタンを押すだけ！
+// ============================================================
+function updateStatusValidation() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEET_NAME);
+  const lastRow = sheet.getLastRow();
+  
+  // ステータスの最新定義（8列目 = H列）
+  const STATUS_VALUES = [
+    '情報収集',
+    '応募準備',
+    '書類結果待ち',   // ← 旧「書類送付済」から変更
+    'AD提出前',
+    'AD提出済',
+    'オーディション済',
+    '結果待ち',
+    '完了'
+  ];
+  
+  // H列（ステータス列）のデータバリデーションを更新
+  const statusRange = sheet.getRange(2, 8, lastRow - 1, 1); // H2:H最終行
+  const rule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(STATUS_VALUES, true)
+    .setAllowInvalid(false)
+    .build();
+  statusRange.setDataValidation(rule);
+  
+  // 既存行の「書類送付済」を「書類結果待ち」に一括置換
+  const values = statusRange.getValues();
+  let updatedCount = 0;
+  for (let i = 0; i < values.length; i++) {
+    if (values[i][0] === '書類送付済') {
+      values[i][0] = '書類結果待ち';
+      updatedCount++;
+    }
+  }
+  if (updatedCount > 0) {
+    statusRange.setValues(values);
+  }
+  
+  Logger.log(`✅ ドロップダウン更新完了！「書類送付済」→「書類結果待ち」に ${updatedCount} 件変更しました。`);
+  SpreadsheetApp.getActive()?.toast(`ステータス項目を更新しました（${updatedCount}件変換）`, '✅ 完了', 5);
+}

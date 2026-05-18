@@ -9,8 +9,8 @@ const TALENT_ICONS = {
   '谷口彩菜':'🌸','寺崎ひな':'⭐','小久保宏紀':'🎭',
   '島田和奏':'🌟','中塚智':'🎬','太田陽菜':'🌻'
 };
-const STATUS_ORDER = ['情報収集','応募準備','書類送付済','オーディション済','結果待ち','完了'];
-const STATUS_MAP = {info:'情報収集',prep:'応募準備',sent:'書類送付済',done:'オーディション済',wait:'結果待ち',complete:'完了'};
+const STATUS_ORDER = ['情報収集','応募準備','書類結果待ち','AD提出前','AD提出済','オーディション済','結果待ち','完了'];
+const STATUS_MAP = {info:'情報収集',prep:'応募準備',sent:'書類結果待ち',adpre:'AD提出前',ad:'AD提出済',done:'オーディション済',wait:'結果待ち',complete:'完了'};
 const GENRE_ICONS = {'映画':'🎬','ドラマ':'📺','舞台':'🎭','CM':'📢','MV':'🎵','Web':'🌐','広告':'📸','ショートドラマ':'📱','バラエティ':'🎪'};
 const TYPE_ICONS = {'オーディション':'🎤','オファー':'📩','レギュラー':'📺','イベント':'🎪','撮影':'📸','その他':'📋'};
 const TYPE_COLORS = {'オーディション':'#e2000f','オファー':'#10B981','レギュラー':'#3B82F6','イベント':'#F59E0B','撮影':'#8B5CF6','その他':'#6B7280'};
@@ -36,15 +36,15 @@ async function fetchSheetData(sheet) {
 }
 
 const FALLBACK_DATA = [
-  {ID:'1',タレント名:'中塚智',オーディション名:'映画『夜明けの街』 主演キャスト',ジャンル:'映画',締切日:'2026/05/20',オーディション日:'2026/05/28',ステータス:'書類送付済',対応者:'マネージャー',アクション:'写真追加して再送',結果:'未定',備考:'監督指名あり',登録日:'2026/05/10',更新日:'2026/05/12',資料リンク:''},
+  {ID:'1',タレント名:'中塚智',オーディション名:'映画『夜明けの街』 主演キャスト',ジャンル:'映画',締切日:'2026/05/20',オーディション日:'2026/05/28',ステータス:'書類結果待ち',対応者:'マネージャー',アクション:'写真追加して再送',結果:'未定',備考:'監督指名あり',登録日:'2026/05/10',更新日:'2026/05/12',資料リンク:''},
   {ID:'2',タレント名:'中塚智',オーディション名:'NHKドラマ ゲスト出演',ジャンル:'ドラマ',締切日:'2026/05/15',オーディション日:'2026/05/22',ステータス:'オーディション済',対応者:'本人',アクション:'',結果:'結果待ち',備考:'2次審査通過',登録日:'2026/05/05',更新日:'2026/05/12',資料リンク:''},
   {ID:'3',タレント名:'中塚智',オーディション名:'サントリー CM',ジャンル:'CM',締切日:'2026/05/25',オーディション日:'',ステータス:'応募準備',対応者:'マネージャー',アクション:'プロフィール更新必要',結果:'未定',備考:'ギャラ:80万',登録日:'2026/05/11',更新日:'2026/05/12',資料リンク:''},
-  {ID:'4',タレント名:'谷口彩菜',オーディション名:'舞台『蒼の彼方』',ジャンル:'舞台',締切日:'2026/05/18',オーディション日:'2026/05/30',ステータス:'書類送付済',対応者:'本人',アクション:'',結果:'未定',備考:'ダンス審査あり',登録日:'2026/05/08',更新日:'2026/05/12',資料リンク:''},
+  {ID:'4',タレント名:'谷口彩菜',オーディション名:'舞台『蒼の彼方』',ジャンル:'舞台',締切日:'2026/05/18',オーディション日:'2026/05/30',ステータス:'書類結果待ち',対応者:'本人',アクション:'',結果:'未定',備考:'ダンス審査あり',登録日:'2026/05/08',更新日:'2026/05/12',資料リンク:''},
   {ID:'5',タレント名:'谷口彩菜',オーディション名:'YouTubeドラマ レギュラー',ジャンル:'Web',締切日:'2026/05/30',オーディション日:'',ステータス:'情報収集',対応者:'マネージャー',アクション:'詳細確認中',結果:'未定',備考:'週3回撮影',登録日:'2026/05/12',更新日:'2026/05/12',資料リンク:''},
   {ID:'6',タレント名:'寺崎ひな',オーディション名:'ABEMA恋愛リアリティ',ジャンル:'バラエティ',締切日:'2026/05/22',オーディション日:'2026/06/01',ステータス:'応募準備',対応者:'本人',アクション:'自己PR動画撮影',結果:'未定',備考:'',登録日:'2026/05/10',更新日:'2026/05/12',資料リンク:''},
   {ID:'7',タレント名:'寺崎ひな',オーディション名:'ショートドラマ 主演',ジャンル:'ショートドラマ',締切日:'2026/05/16',オーディション日:'2026/05/20',ステータス:'オーディション済',対応者:'マネージャー',アクション:'スケジュール調整',結果:'結果待ち',備考:'先方から好感触',登録日:'2026/05/06',更新日:'2026/05/12',資料リンク:''},
   {ID:'8',タレント名:'小久保宏紀',オーディション名:'MV出演 アーティスト未定',ジャンル:'MV',締切日:'2026/06/05',オーディション日:'',ステータス:'情報収集',対応者:'マネージャー',アクション:'ギャラ確認',結果:'未定',備考:'',登録日:'2026/05/12',更新日:'2026/05/12',資料リンク:''},
-  {ID:'9',タレント名:'小久保宏紀',オーディション名:'化粧品ブランド モデル',ジャンル:'広告',締切日:'2026/05/19',オーディション日:'2026/05/26',ステータス:'書類送付済',対応者:'本人',アクション:'',結果:'未定',備考:'コンポジット写真必須',登録日:'2026/05/09',更新日:'2026/05/11',資料リンク:''},
+  {ID:'9',タレント名:'小久保宏紀',オーディション名:'化粧品ブランド モデル',ジャンル:'広告',締切日:'2026/05/19',オーディション日:'2026/05/26',ステータス:'書類結果待ち',対応者:'本人',アクション:'',結果:'未定',備考:'コンポジット写真必須',登録日:'2026/05/09',更新日:'2026/05/11',資料リンク:''},
   {ID:'10',タレント名:'島田和奏',オーディション名:'インディーズ映画 助演',ジャンル:'映画',締切日:'2026/06/10',オーディション日:'',ステータス:'情報収集',対応者:'マネージャー',アクション:'監督にコンタクト',結果:'未定',備考:'低予算だが良作の可能性',登録日:'2026/05/12',更新日:'2026/05/12',資料リンク:''},
   {ID:'11',タレント名:'島田和奏',オーディション名:'アパレルブランド シーズンモデル',ジャンル:'CM',締切日:'2026/05/14',オーディション日:'2026/05/17',ステータス:'完了',対応者:'本人',アクション:'',結果:'合格',備考:'初のCM案件！',登録日:'2026/04/28',更新日:'2026/05/10',資料リンク:''},
   {ID:'12',タレント名:'太田陽菜',オーディション名:'舞台『月光』 ヒロイン',ジャンル:'舞台',締切日:'2026/04/20',オーディション日:'2026/05/05',ステータス:'完了',対応者:'本人',アクション:'',結果:'不合格',備考:'次回作で再挑戦',登録日:'2026/04/15',更新日:'2026/05/08',資料リンク:''},
@@ -227,12 +227,11 @@ function renderStats() {
   const active = data.filter(d => d['ステータス'] !== '完了');
   const deadlineSoon = data.filter(d => { const du = daysUntil(d['締切日']); return du >= 0 && du <= 7; });
   const passed = data.filter(d => d['結果'] === '合格');
-  const managerAction = data.filter(d => d['対応者'] === 'マネージャー' && d['ステータス'] !== '完了' && d['アクション']);
+  const managerAction = data.filter(d => ['応募準備','書類結果待ち'].includes(d['ステータス']));
   document.getElementById('statsGrid').innerHTML = [
     statCard('📋', active.length, '進行中', ''),
     statCard('⏰', deadlineSoon.length, '今週の締切', ''),
-    statCard('✅', passed.length, '合格', ''),
-    statCard('⚡', managerAction.length, '対応待ち', 'urgent'),
+    statCard('⚡', managerAction.length, '対応待ち', 'urgent')
   ].join('');
 }
 
@@ -242,7 +241,7 @@ function statCard(icon, val, label, cls) {
 
 // ===== Action Panel =====
 function renderActionPanel() {
-  const data = getFiltered().filter(d => d['対応者'] === 'マネージャー' && d['ステータス'] !== '完了' && d['アクション']);
+  const data = getFiltered().filter(d => ['応募準備','書類結果待ち'].includes(d['ステータス']));
   const panel = document.getElementById('actionPanel');
   document.getElementById('actionCount').textContent = data.length;
   const list = document.getElementById('actionList');
@@ -310,9 +309,10 @@ function renderRecent() {
     }
   });
 
-  // Googleカレンダーイベントを収集
+  // Googleカレンダーイベントを収集（終日イベントのみ）
   const filteredCalEvents = calendarEvents.filter(ev => {
     if (currentTalent !== 'all' && ev.talent !== currentTalent) return false;
+    if (ev.allDay === false) return false; // 時間指定イベントは除外
     const evDate = new Date(ev.start);
     evDate.setHours(0, 0, 0, 0);
     return evDate >= today;
@@ -370,7 +370,7 @@ function renderTalentSummary() {
 // ===== Kanban =====
 function renderKanban() {
   const data = getFiltered();
-  const map = {info:'情報収集',prep:'応募準備',sent:'書類送付済',done:'オーディション済',wait:'結果待ち',complete:'完了'};
+  const map = {info:'情報収集',prep:'応募準備',sent:'書類結果待ち',adpre:'AD提出前',ad:'AD提出済',done:'オーディション済',wait:'結果待ち',complete:'完了'};
   // Also map result-based statuses
   Object.keys(map).forEach(k => {
     const cards = data.filter(d => {
@@ -386,7 +386,7 @@ function renderKanban() {
     if (countEl) countEl.textContent = cards.length;
   });
   // Simpler approach: distribute by status
-  const buckets = {info:[],prep:[],sent:[],done:[],wait:[],complete:[]};
+  const buckets = {info:[],prep:[],sent:[],adpre:[],ad:[],done:[],wait:[],complete:[]};
   data.forEach(d => {
     const s = d['ステータス'];
     const r = d['結果'];
@@ -394,7 +394,9 @@ function renderKanban() {
     if (r === '結果待ち') { buckets.wait.push(d); return; }
     if (s === '情報収集') buckets.info.push(d);
     else if (s === '応募準備') buckets.prep.push(d);
-    else if (s === '書類送付済') buckets.sent.push(d);
+    else if (s === '書類結果待ち') buckets.sent.push(d);
+    else if (s === 'AD提出前') buckets.adpre.push(d);
+    else if (s === 'AD提出済') buckets.ad.push(d);
     else if (s === 'オーディション済') buckets.done.push(d);
     else if (s === '完了') buckets.complete.push(d);
     else buckets.info.push(d);
@@ -431,7 +433,7 @@ function renderList() {
 
   const el = document.getElementById('listBody');
   el.innerHTML = data.map(d => {
-    const sCls = d['ステータス']==='情報収集'?'status-info':d['ステータス']==='応募準備'?'status-prep':d['ステータス']==='書類送付済'?'status-sent':d['ステータス']==='オーディション済'?'status-auditioned':'status-completed';
+    const sCls = d['ステータス']==='情報収集'?'status-info':d['ステータス']==='応募準備'?'status-prep':d['ステータス']==='書類結果待ち'?'status-sent':d['ステータス']==='AD提出前'?'status-adpre':d['ステータス']==='AD提出済'?'status-ad':d['ステータス']==='オーディション済'?'status-auditioned':'status-completed';
     const rCls = d['結果']==='合格'?'result-pass':d['結果']==='不合格'?'result-fail':d['結果']==='結果待ち'?'result-waiting':'';
     const ownerCls = d['対応者']==='マネージャー'?'owner-manager':'';
     const fileLink = d['資料リンク'] ? `<a href="${d['資料リンク']}" target="_blank" style="font-size:.7rem;color:var(--accent)">📎</a>` : '';
@@ -455,9 +457,10 @@ function renderCalendar() {
   const today = now.getDate();
   const data = getFiltered();
 
-  // Googleカレンダーイベントをフィルタ
+  // Googleカレンダーイベントをフィルタ（終日イベントのみ表示）
   const filteredCalEvents = calendarEvents.filter(ev => {
     if (currentTalent !== 'all' && ev.talent !== currentTalent) return false;
+    if (ev.allDay === false) return false; // 時間指定イベントは除外
     return true;
   });
 
@@ -967,7 +970,7 @@ function renderWorks() {
   el.innerHTML = data.map(d => {
     const type = d['案件種別'] || 'オーディション';
     const typeColor = TYPE_COLORS[type] || '#888';
-    const sCls = d['ステータス']==='情報収集'?'status-info':d['ステータス']==='応募準備'?'status-prep':d['ステータス']==='書類送付済'?'status-sent':d['ステータス']==='オーディション済'?'status-auditioned':'status-completed';
+    const sCls = d['ステータス']==='情報収集'?'status-info':d['ステータス']==='応募準備'?'status-prep':d['ステータス']==='書類結果待ち'?'status-sent':d['ステータス']==='オーディション済'?'status-auditioned':'status-completed';
     const dateStr = d['オーディション日'] ? fmtDate(d['オーディション日']) : (d['締切日'] ? '〆'+fmtDate(d['締切日']) : '-');
     return `<tr>
       <td><span class="type-badge" style="background:${typeColor}">${TYPE_ICONS[type]||''} ${type}</span></td>

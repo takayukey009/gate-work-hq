@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+JP:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
     <!-- Sidebar -->
@@ -150,9 +150,17 @@
                     <div class="kanban-header"><span class="kanban-dot dot-prep"></span><h4>応募準備</h4><span class="kanban-count" id="count-prep">0</span></div>
                     <div class="kanban-cards" id="cards-prep"></div>
                 </div>
-                <div class="kanban-column" data-status="書類送付済">
-                    <div class="kanban-header"><span class="kanban-dot dot-sent"></span><h4>書類送付済</h4><span class="kanban-count" id="count-sent">0</span></div>
+                <div class="kanban-column" data-status="書類結果待ち">
+                    <div class="kanban-header"><span class="kanban-dot dot-sent"></span><h4>書類結果待ち</h4><span class="kanban-count" id="count-sent">0</span></div>
                     <div class="kanban-cards" id="cards-sent"></div>
+                </div>
+                <div class="kanban-column" data-status="AD提出前">
+                    <div class="kanban-header"><span class="kanban-dot dot-adpre"></span><h4>AD提出前</h4><span class="kanban-count" id="count-adpre">0</span></div>
+                    <div class="kanban-cards" id="cards-adpre"></div>
+                </div>
+                <div class="kanban-column" data-status="AD提出済">
+                    <div class="kanban-header"><span class="kanban-dot dot-ad"></span><h4>AD提出済</h4><span class="kanban-count" id="count-ad">0</span></div>
+                    <div class="kanban-cards" id="cards-ad"></div>
                 </div>
                 <div class="kanban-column" data-status="オーディション済">
                     <div class="kanban-header"><span class="kanban-dot dot-done"></span><h4>オーディション済</h4><span class="kanban-count" id="count-done">0</span></div>
@@ -353,7 +361,9 @@
                         <select id="f-status">
                             <option value="情報収集">情報収集</option>
                             <option value="応募準備">応募準備</option>
-                            <option value="書類送付済">書類送付済</option>
+                            <option value="書類結果待ち">書類結果待ち</option>
+                            <option value="AD提出前">AD提出前</option>
+                            <option value="AD提出済">AD提出済</option>
                             <option value="オーディション済">オーディション済</option>
                         </select>
                     </div>
@@ -416,6 +426,6 @@
         <p>データを読み込み中...</p>
     </div>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=2"></script>
 </body>
 </html>
