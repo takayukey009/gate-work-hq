@@ -303,7 +303,7 @@ function renderActionPanel() {
     const resDate = d['結果発表'] || d['結果発表日'];
     if (['書類結果待ち', '結果待ち'].includes(d['ステータス']) && resDate) {
       const parsed = parseDate(resDate);
-      dateInfo = '発表 ' + (parsed ? fmtDate(resDate) : resDate);
+      dateInfo = '結果 ' + (parsed ? fmtDate(resDate) : resDate);
     } else if (d['締切日']) {
       dateInfo = '〆 ' + fmtDate(d['締切日']);
     }
