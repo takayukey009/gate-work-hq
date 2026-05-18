@@ -256,8 +256,10 @@ function renderActionPanel() {
   document.querySelector('.action-empty-msg')?.remove();
   list.innerHTML = data.map(d => {
     let dateInfo = '';
-    if (['書類結果待ち', '結果待ち'].includes(d['ステータス']) && d['結果発表日']) {
-      dateInfo = '発表 ' + fmtDate(d['結果発表日']);
+    const resDate = d['結果発表'] || d['結果発表日'];
+    if (['書類結果待ち', '結果待ち'].includes(d['ステータス']) && resDate) {
+      const parsed = parseDate(resDate);
+      dateInfo = '発表 ' + (parsed ? fmtDate(resDate) : resDate);
     } else if (d['締切日']) {
       dateInfo = '〆 ' + fmtDate(d['締切日']);
     }
