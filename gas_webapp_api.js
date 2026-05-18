@@ -44,22 +44,23 @@ function doPost(e) {
     
     // スプレッドシートに追記
     sheet.appendRow([
-      nextId,
-      data.talentName || '',
-      data.auditionName || '',
-      data.genre || '',
-      data.deadline || '',
-      data.auditionDate || '',
-      data.status || '情報収集',
-      data.owner || 'マネージャー',
-      data.action || '',
-      data.result || '未定',
-      data.notes || '',
-      today,
-      today,
-      fileUrl,
-      data.resultDate || '',
-      data.releaseDate || ''
+      nextId,                     // A: ID
+      data.talentName || '',      // B: タレント名
+      data.type || 'オーディション',// C: 案件種別
+      data.auditionName || '',    // D: オーディション名
+      data.genre || '',           // E: ジャンル
+      data.deadline || '',        // F: 締切日
+      data.auditionDate || '',    // G: オーディション日
+      data.status || '情報収集',   // H: ステータス
+      data.owner || 'マネージャー', // I: 対応者
+      data.action || '',          // J: アクション
+      data.result || '未定',        // K: 結果
+      data.notes || '',           // L: 備考
+      today,                      // M: 登録日
+      today,                      // N: 更新日
+      data.resultDate || '',      // O: 結果発表
+      data.releaseDate || '',     // P: 公開日
+      fileUrl                     // Q: 資料リンク
     ]);
     
     return ContentService
