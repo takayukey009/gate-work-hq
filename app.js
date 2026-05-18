@@ -83,6 +83,7 @@ async function loadCalendarData() {
       calendarEvents = json.events;
       console.log(`カレンダー: ${calendarEvents.length}件取得`);
       if (currentSection === 'calendar') renderCalendar();
+      renderRecent(); // カレンダーデータ取得後にRECENTも再描画
     }
   } catch (e) {
     console.warn('カレンダーデータ取得失敗:', e.message);
