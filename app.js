@@ -9,8 +9,8 @@ const TALENT_ICONS = {
   '谷口彩菜':'🌸','寺崎ひな':'⭐','小久保宏紀':'🎭',
   '島田和奏':'🌟','中塚智':'🎬','太田陽菜':'🌻'
 };
-const STATUS_ORDER = ['情報収集','応募準備','書類結果待ち','AD提出前','AD提出済','オーディション済','結果待ち','完了'];
-const STATUS_MAP = {info:'情報収集',prep:'応募準備',sent:'書類結果待ち',adpre:'AD提出前',ad:'AD提出済',done:'オーディション済',wait:'結果待ち',complete:'完了'};
+const STATUS_ORDER = ['情報収集','応募準備','書類結果待ち','オーディション日調整中','結果待ち','完了'];
+const STATUS_MAP = {info:'情報収集',prep:'応募準備',sent:'書類結果待ち',done:'オーディション日調整中',wait:'結果待ち',complete:'完了'};
 const GENRE_ICONS = {'映画':'🎬','ドラマ':'📺','舞台':'🎭','CM':'📢','MV':'🎵','Web':'🌐','広告':'📸','ショートドラマ':'📱','バラエティ':'🎪'};
 const TYPE_ICONS = {'オーディション':'🎤','オファー':'📩','レギュラー':'📺','イベント':'🎪','撮影':'📸','その他':'📋'};
 const TYPE_COLORS = {'オーディション':'#e2000f','オファー':'#10B981','レギュラー':'#3B82F6','イベント':'#F59E0B','撮影':'#8B5CF6','その他':'#6B7280'};
@@ -424,7 +424,7 @@ function renderTalentSummary() {
 // ===== Kanban =====
 function renderKanban() {
   const data = getFiltered();
-  const map = {info:'情報収集',prep:'応募準備',sent:'書類結果待ち',adpre:'AD提出前',ad:'AD提出済',done:'オーディション済',wait:'結果待ち',complete:'完了'};
+  const map = {info:'情報収集',prep:'応募準備',sent:'書類結果待ち',done:'オーディション日調整中',wait:'結果待ち',complete:'完了'};
   // Also map result-based statuses
   Object.keys(map).forEach(k => {
     const cards = data.filter(d => {
@@ -440,7 +440,7 @@ function renderKanban() {
     if (countEl) countEl.textContent = cards.length;
   });
   // Simpler approach: distribute by status
-  const buckets = {info:[],prep:[],sent:[],adpre:[],ad:[],done:[],wait:[],complete:[]};
+  const buckets = {info:[],prep:[],sent:[],done:[],wait:[],complete:[]};
   data.forEach(d => {
     const s = d['ステータス'];
     const r = d['結果'];
@@ -449,9 +449,7 @@ function renderKanban() {
     if (s === '情報収集') buckets.info.push(d);
     else if (s === '応募準備') buckets.prep.push(d);
     else if (s === '書類結果待ち') buckets.sent.push(d);
-    else if (s === 'AD提出前') buckets.adpre.push(d);
-    else if (s === 'AD提出済') buckets.ad.push(d);
-    else if (s === 'オーディション済') buckets.done.push(d);
+    else if (s === 'オーディション日調整中') buckets.done.push(d);
     else if (s === '完了') buckets.complete.push(d);
     else buckets.info.push(d);
   });
@@ -487,7 +485,7 @@ function renderList() {
 
   const el = document.getElementById('listBody');
   el.innerHTML = data.map(d => {
-    const sCls = d['ステータス']==='情報収集'?'status-info':d['ステータス']==='応募準備'?'status-prep':d['ステータス']==='書類結果待ち'?'status-sent':d['ステータス']==='AD提出前'?'status-adpre':d['ステータス']==='AD提出済'?'status-ad':d['ステータス']==='オーディション済'?'status-auditioned':'status-completed';
+    const sCls = d['ステータス']==='情報収集'?'status-info':d['ステータス']==='応募準備'?'status-prep':d['ステータス']==='書類結果待ち'?'status-sent':d['ステータス']==='オーディション日調整中'?'status-auditioned':'status-completed';
     const rCls = d['結果']==='合格'?'result-pass':d['結果']==='不合格'?'result-fail':d['結果']==='結果待ち'?'result-waiting':'';
     const ownerCls = d['対応者']==='マネージャー'?'owner-manager':'';
     const fileLink = d['資料リンク'] ? `<a href="${d['資料リンク']}" target="_blank" style="font-size:.7rem;color:var(--accent)">📎</a>` : '';
@@ -1024,7 +1022,7 @@ function renderWorks() {
   el.innerHTML = data.map(d => {
     const type = d['案件種別'] || 'オーディション';
     const typeColor = TYPE_COLORS[type] || '#888';
-    const sCls = d['ステータス']==='情報収集'?'status-info':d['ステータス']==='応募準備'?'status-prep':d['ステータス']==='書類結果待ち'?'status-sent':d['ステータス']==='オーディション済'?'status-auditioned':'status-completed';
+    const sCls = d['ステータス']==='情報収集'?'status-info':d['ステータス']==='応募準備'?'status-prep':d['ステータス']==='書類結果待ち'?'status-sent':d['ステータス']==='オーディション日調整中'?'status-auditioned':'status-completed';
     const dateStr = d['オーディション日'] ? fmtDate(d['オーディション日']) : (d['締切日'] ? '〆'+fmtDate(d['締切日']) : '-');
     return `<tr>
       <td><span class="type-badge" style="background:${typeColor}">${TYPE_ICONS[type]||''} ${type}</span></td>
