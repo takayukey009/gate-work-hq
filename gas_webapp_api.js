@@ -58,9 +58,9 @@ function doPost(e) {
       data.notes || '',           // L: 備考
       today,                      // M: 登録日
       today,                      // N: 更新日
-      data.resultDate || '',      // O: 結果発表
-      data.releaseDate || '',     // P: 公開日
-      fileUrl                     // Q: 資料リンク
+      fileUrl,                    // O: 資料リンク
+      data.resultDate || '',      // P: 結果発表
+      data.releaseDate || ''      // Q: 公開日
     ]);
     
     return ContentService
