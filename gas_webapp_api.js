@@ -106,9 +106,51 @@ function doGet(e) {
     return getFolderFiles();
   }
   
+  if (action === 'fix_validation') {
+    return fixValidation();
+  }
+  
   return ContentService
     .createTextOutput(JSON.stringify({ status: 'ok', message: 'GATE Audition API is running' }))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ============================================================
+// H列の入力規則を統一設定
+// ============================================================
+function fixValidation() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(SHEET_NAME);
+    
+    // H列の既存の入力規則をすべてクリア
+    const range = sheet.getRange('H2:H199');
+    range.clearDataValidations();
+    
+    // 新しい入力規則を設定（カンバンと一致する6ステータス）
+    const rule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(['情報収集', '応募準備', '書類結果待ち', 'オーディション日調整中', '結果待ち', '完了'], true)
+      .setAllowInvalid(false)
+      .build();
+    range.setDataValidation(rule);
+    
+    // C列（案件種別）の入力規則も統一
+    const typeRange = sheet.getRange('C2:C199');
+    typeRange.clearDataValidations();
+    const typeRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(['オーディション', 'オファー', 'レギュラー', 'イベント', '撮影', 'その他'], true)
+      .setAllowInvalid(false)
+      .build();
+    typeRange.setDataValidation(typeRule);
+    
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: true, message: 'Validation rules updated for H2:H199 and C2:C199' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: false, error: error.message }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 }
 
 // ============================================================
