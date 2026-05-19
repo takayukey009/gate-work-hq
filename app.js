@@ -424,32 +424,16 @@ function renderTalentSummary() {
 // ===== Kanban =====
 function renderKanban() {
   const data = getFiltered();
-  const map = {info:'情報収集',prep:'応募準備',sent:'書類結果待ち',done:'オーディション日調整中',wait:'結果待ち',complete:'完了'};
-  // Also map result-based statuses
-  Object.keys(map).forEach(k => {
-    const cards = data.filter(d => {
-      if (k === 'wait') return d['結果'] === '結果待ち';
-      if (k === 'complete') return d['ステータス'] === '完了' || d['結果'] === '合格' || d['結果'] === '不合格';
-      if (k === 'wait') return false;
-      return d['ステータス'] === map[k] && d['結果'] !== '結果待ち' && d['結果'] !== '合格' && d['結果'] !== '不合格';
-    });
-    const container = document.getElementById('cards-'+k);
-    const countEl = document.getElementById('count-'+k);
-    if (!container) return;
-    container.innerHTML = cards.map(d => kanbanCard(d)).join('');
-    if (countEl) countEl.textContent = cards.length;
-  });
-  // Simpler approach: distribute by status
   const buckets = {info:[],prep:[],sent:[],done:[],wait:[],complete:[]};
   data.forEach(d => {
     const s = d['ステータス'];
     const r = d['結果'];
     if (r === '合格' || r === '不合格') { buckets.complete.push(d); return; }
-    if (r === '結果待ち') { buckets.wait.push(d); return; }
     if (s === '情報収集') buckets.info.push(d);
     else if (s === '応募準備') buckets.prep.push(d);
     else if (s === '書類結果待ち') buckets.sent.push(d);
     else if (s === 'オーディション日調整中') buckets.done.push(d);
+    else if (s === '結果待ち') buckets.wait.push(d);
     else if (s === '完了') buckets.complete.push(d);
     else buckets.info.push(d);
   });
@@ -465,7 +449,11 @@ function renderKanban() {
 function kanbanCard(d) {
   const resultCls = d['結果']==='合格'?'result-pass':d['結果']==='不合格'?'result-fail':d['結果']==='結果待ち'?'result-waiting':'';
   const fileLink = d['資料リンク'] ? `<a href="${d['資料リンク']}" target="_blank" style="font-size:.6rem;color:var(--accent);text-decoration:none">📎 資料</a>` : '';
-  return `<div class="kanban-card"><div class="kanban-card-talent"><span class="talent-badge-sm" style="background:${talentColor(d['タレント名'])}">${d['タレント名']}</span></div><div class="kanban-card-title">${d['オーディション名']}</div><div class="kanban-card-meta">${d['締切日']?'〆 '+fmtDate(d['締切日']):''} ${d['対応者']==='マネージャー'?'<span style="color:var(--accent)">●MGR</span>':''}</div><span class="kanban-card-genre">${GENRE_ICONS[d['ジャンル']]||'📋'} ${d['ジャンル']}</span>${resultCls?` <span class="kanban-card-result ${resultCls}">${d['結果']}</span>`:''}${d['アクション']?`<div style="font-size:.65rem;color:var(--text-muted);margin-top:4px">→ ${d['アクション']}</div>`:''}${fileLink?`<div style="margin-top:4px">${fileLink}</div>`:''}</div>`;
+  const typeVal = d['案件種別'] || 'オーディション';
+  const typeColor = TYPE_COLORS[typeVal] || '#6B7280';
+  const typeIcon = TYPE_ICONS[typeVal] || '📋';
+  const typeBadge = `<span style="display:inline-block;font-size:.6rem;font-weight:700;color:#fff;background:${typeColor};padding:1px 6px;border-radius:3px;margin-bottom:4px">${typeIcon} ${typeVal}</span>`;
+  return `<div class="kanban-card" style="${typeVal !== 'オーディション' ? 'border-left:3px solid '+typeColor : ''}">${typeBadge}<div class="kanban-card-talent"><span class="talent-badge-sm" style="background:${talentColor(d['タレント名'])}">${d['タレント名']}</span></div><div class="kanban-card-title">${d['オーディション名']}</div><div class="kanban-card-meta">${d['締切日']?'〆 '+fmtDate(d['締切日']):''} ${d['対応者']==='マネージャー'?'<span style="color:var(--accent)">●MGR</span>':''}</div><span class="kanban-card-genre">${GENRE_ICONS[d['ジャンル']]||'📋'} ${d['ジャンル']}</span>${resultCls?` <span class="kanban-card-result ${resultCls}">${d['結果']}</span>`:''}${d['アクション']?`<div style="font-size:.65rem;color:var(--text-muted);margin-top:4px">→ ${d['アクション']}</div>`:''}${fileLink?`<div style="margin-top:4px">${fileLink}</div>`:''}</div>`;
 }
 
 // ===== List =====
