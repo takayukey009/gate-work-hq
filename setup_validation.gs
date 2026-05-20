@@ -9,7 +9,7 @@ function setupAllValidation() {
   
   // ===== B列: タレント名（プルダウン） =====
   const talentRule = SpreadsheetApp.newDataValidation()
-    .requireValueInList(['谷口彩菜', '寺崎ひな', '小久保宏紀', '島田和奏', '中塚智', '太田陽菜'], true)
+    .requireValueInList(['谷口彩菜', '寺崎ひな', '小久保宏紀', '島田和奏', '中塚智', '太田陽菜', '吉富千桜'], true)
     .setAllowInvalid(true)
     .setHelpText('タレントを選択してください')
     .build();

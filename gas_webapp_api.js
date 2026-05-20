@@ -79,7 +79,7 @@ function doPost(e) {
 // ============================================================
 const SALES_SPREADSHEET_ID = '107oRwGTZM7-_OKOwjgw_efgXYDQJTarm6Da1SsJjVOg';
 const SALES_SHEET_NAME = '2025年7月~2026年6月';
-const MANAGED_TALENTS = ['谷口彩菜','寺崎ひな','小久保宏紀','島田和奏','中塚智','太田陽菜'];
+const MANAGED_TALENTS = ['谷口彩菜','寺崎ひな','小久保宏紀','島田和奏','中塚智','太田陽菜','吉富千桜'];
 
 // タレント別カレンダーID
 const TALENT_CALENDARS = {
@@ -88,7 +88,8 @@ const TALENT_CALENDARS = {
   '小久保宏紀': 'hiroki.kokubo@gate-agency.com',
   '島田和奏': 'wakana.shimada@gate-agency.com',
   '中塚智': 'satoshi.nakatsuka@gate-agency.com',
-  '太田陽菜': 'hina.ota@gate-agency.com'
+  '太田陽菜': 'hina.ota@gate-agency.com',
+  '吉富千桜': 'chisa.yoshitomi@gate-agency.com'
 };
 
 function doGet(e) {
@@ -116,14 +117,24 @@ function doGet(e) {
 }
 
 // ============================================================
-// H列の入力規則を統一設定
+// 入力規則を統一設定（B列: タレント名、C列: 案件種別、H列: ステータス）
 // ============================================================
 function fixValidation() {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SHEET_NAME);
     
-    // H列の既存の入力規則をすべてクリア
+    // B列（タレント名）の入力規則を設定
+    const talentRange = sheet.getRange('B2:B199');
+    talentRange.clearDataValidations();
+    const talentRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(['谷口彩菜', '寺崎ひな', '小久保宏紀', '島田和奏', '中塚智', '太田陽菜', '吉富千桜'], true)
+      .setAllowInvalid(true)
+      .setHelpText('タレントを選択してください')
+      .build();
+    talentRange.setDataValidation(talentRule);
+    
+    // H列の既存의入力規則をすべてクリア
     const range = sheet.getRange('H2:H199');
     range.clearDataValidations();
     
@@ -144,7 +155,7 @@ function fixValidation() {
     typeRange.setDataValidation(typeRule);
     
     return ContentService
-      .createTextOutput(JSON.stringify({ success: true, message: 'Validation rules updated for H2:H199 and C2:C199' }))
+      .createTextOutput(JSON.stringify({ success: true, message: 'Validation rules updated for B2:B199, C2:C199 and H2:H199' }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (error) {
     return ContentService
