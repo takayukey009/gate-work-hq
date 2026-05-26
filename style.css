@@ -203,6 +203,7 @@ body { font-family: var(--font); background: var(--bg-alt); color: var(--text); 
 .dot-done { background: #8b5cf6; }
 .dot-wait { background: #f97316; }
 .dot-complete { background: #22c55e; }
+.dot-order { background: #10B981; }
 .kanban-count { font-size: .7rem; background: var(--border); padding: 2px 8px; border-radius: 10px; font-weight: 600; }
 .kanban-cards { display: flex; flex-direction: column; gap: 10px; }
 .kanban-card {
@@ -265,6 +266,7 @@ body { font-family: var(--font); background: var(--bg-alt); color: var(--text); 
 .status-ad { background: #fee2e2; color: #991b1b; }
 .status-auditioned { background: #ede9fe; color: #5b21b6; }
 .status-completed { background: #dcfce7; color: #166534; }
+.status-order { background: #d1fae5; color: #065f46; }
 .owner-manager { color: var(--accent); font-weight: 700; }
 
 /* Calendar */

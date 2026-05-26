@@ -162,6 +162,10 @@
                     <div class="kanban-header"><span class="kanban-dot dot-wait"></span><h4>結果待ち</h4><span class="kanban-count" id="count-wait">0</span></div>
                     <div class="kanban-cards" id="cards-wait"></div>
                 </div>
+                <div class="kanban-column" data-status="受注">
+                    <div class="kanban-header"><span class="kanban-dot dot-order"></span><h4>受注</h4><span class="kanban-count" id="count-order">0</span></div>
+                    <div class="kanban-cards" id="cards-order"></div>
+                </div>
                 <div class="kanban-column" data-status="完了">
                     <div class="kanban-header"><span class="kanban-dot dot-complete"></span><h4>完了</h4><span class="kanban-count" id="count-complete">0</span></div>
                     <div class="kanban-cards" id="cards-complete"></div>
@@ -293,6 +297,7 @@
                             <option value="イベント">🎪 イベント・舞台</option>
                             <option value="撮影">📸 撮影</option>
                             <option value="その他">📋 その他</option>
+                            <option value="営業">💼 営業</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -357,6 +362,7 @@
                             <option value="書類結果待ち">書類結果待ち</option>
                             <option value="オーディション日調整中">オーディション日調整中</option>
                             <option value="結果待ち">結果待ち</option>
+                            <option value="受注">受注</option>
                             <option value="完了">完了</option>
                         </select>
                     </div>
@@ -365,6 +371,7 @@
                         <select id="f-owner">
                             <option value="マネージャー">マネージャー</option>
                             <option value="本人">本人</option>
+                            <option value="営業">営業</option>
                         </select>
                     </div>
                     <div class="form-group form-wide">
