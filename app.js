@@ -271,7 +271,7 @@ function renderStats() {
   const active = data.filter(d => d['ステータス'] !== '完了');
   const deadlineSoon = data.filter(d => { const du = daysUntil(d['締切日']); return du >= 0 && du <= 7; });
   const passed = data.filter(d => d['結果'] === '合格');
-  const managerAction = data.filter(d => ['応募準備','書類結果待ち','結果待ち'].includes(d['ステータス']) && !(d['結果'] || '').startsWith('不合格'));
+  const managerAction = data.filter(d => ['応募準備','書類結果待ち','オーディション日調整中','結果待ち'].includes(d['ステータス']) && !(d['結果'] || '').startsWith('不合格'));
   document.getElementById('statsGrid').innerHTML = [
     statCard('📋', active.length, '進行中', ''),
     statCard('⏰', deadlineSoon.length, '今週の締切', ''),
@@ -285,7 +285,7 @@ function statCard(icon, val, label, cls) {
 
 // ===== Action Panel =====
 function renderActionPanel() {
-  const data = getFiltered().filter(d => ['応募準備','書類結果待ち','結果待ち'].includes(d['ステータス']) && !(d['結果'] || '').startsWith('不合格'));
+  const data = getFiltered().filter(d => ['応募準備','書類結果待ち','オーディション日調整中','結果待ち'].includes(d['ステータス']) && !(d['結果'] || '').startsWith('不合格'));
   const panel = document.getElementById('actionPanel');
   document.getElementById('actionCount').textContent = data.length;
   const list = document.getElementById('actionList');
