@@ -271,7 +271,7 @@ function renderStats() {
   const active = data.filter(d => d['ステータス'] !== '完了');
   const deadlineSoon = data.filter(d => { const du = daysUntil(d['締切日']); return du >= 0 && du <= 7; });
   const passed = data.filter(d => d['結果'] === '合格');
-  const managerAction = data.filter(d => ['応募準備','書類結果待ち','結果待ち'].includes(d['ステータス']));
+  const managerAction = data.filter(d => ['応募準備','書類結果待ち','結果待ち'].includes(d['ステータス']) && !(d['結果'] || '').startsWith('不合格'));
   document.getElementById('statsGrid').innerHTML = [
     statCard('📋', active.length, '進行中', ''),
     statCard('⏰', deadlineSoon.length, '今週の締切', ''),
@@ -285,7 +285,7 @@ function statCard(icon, val, label, cls) {
 
 // ===== Action Panel =====
 function renderActionPanel() {
-  const data = getFiltered().filter(d => ['応募準備','書類結果待ち','結果待ち'].includes(d['ステータス']));
+  const data = getFiltered().filter(d => ['応募準備','書類結果待ち','結果待ち'].includes(d['ステータス']) && !(d['結果'] || '').startsWith('不合格'));
   const panel = document.getElementById('actionPanel');
   document.getElementById('actionCount').textContent = data.length;
   const list = document.getElementById('actionList');
@@ -430,7 +430,7 @@ function renderKanban() {
     const s = d['ステータス'];
     const r = d['結果'];
     if (s === '受注') { buckets.order.push(d); return; }
-    if (r === '合格' || r === '不合格') { buckets.complete.push(d); return; }
+    if (r === '合格' || (r || '').startsWith('不合格')) { buckets.complete.push(d); return; }
     if (s === '情報収集') buckets.info.push(d);
     else if (s === '応募準備') buckets.prep.push(d);
     else if (s === '書類結果待ち') buckets.sent.push(d);
@@ -449,7 +449,7 @@ function renderKanban() {
 }
 
 function kanbanCard(d) {
-  const resultCls = d['結果']==='合格'?'result-pass':d['結果']==='不合格'?'result-fail':d['結果']==='結果待ち'?'result-waiting':'';
+  const resultCls = d['結果']==='合格'?'result-pass':(d['結果']||'').startsWith('不合格')?'result-fail':d['結果']==='結果待ち'?'result-waiting':'';
   const fileLink = d['資料リンク'] ? `<a href="${d['資料リンク']}" target="_blank" style="font-size:.6rem;color:var(--accent);text-decoration:none">📎 資料</a>` : '';
   const typeVal = d['案件種別'] || 'オーディション';
   const typeColor = TYPE_COLORS[typeVal] || '#6B7280';
@@ -465,9 +465,9 @@ let listSort = {col:'deadline',asc:true};
 
 function renderList() {
   let data = getFiltered();
-  if (listFilter === 'active') data = data.filter(d => d['ステータス']!=='完了' && d['結果']!=='合格' && d['結果']!=='不合格');
+  if (listFilter === 'active') data = data.filter(d => d['ステータス']!=='完了' && d['結果']!=='合格' && !(d['結果']||'').startsWith('不合格'));
   else if (listFilter === '合格') data = data.filter(d => d['結果']==='合格');
-  else if (listFilter === '不合格') data = data.filter(d => d['結果']==='不合格');
+  else if (listFilter === '不合格') data = data.filter(d => (d['結果']||'').startsWith('不合格'));
   if (listSearch) { const q = listSearch.toLowerCase(); data = data.filter(d => d['オーディション名'].toLowerCase().includes(q)); }
   if (listSort.col === 'deadline') data.sort((a,b) => (listSort.asc?1:-1)*(daysUntil(a['締切日'])-daysUntil(b['締切日'])));
   else if (listSort.col === 'talent') data.sort((a,b) => (listSort.asc?1:-1)*a['タレント名'].localeCompare(b['タレント名']));
@@ -476,7 +476,7 @@ function renderList() {
   const el = document.getElementById('listBody');
   el.innerHTML = data.map(d => {
     const sCls = d['ステータス']==='情報収集'?'status-info':d['ステータス']==='応募準備'?'status-prep':d['ステータス']==='書類結果待ち'?'status-sent':d['ステータス']==='オーディション日調整中'?'status-auditioned':d['ステータス']==='受注'?'status-order':'status-completed';
-    const rCls = d['結果']==='合格'?'result-pass':d['結果']==='不合格'?'result-fail':d['結果']==='結果待ち'?'result-waiting':'';
+    const rCls = d['結果']==='合格'?'result-pass':(d['結果']||'').startsWith('不合格')?'result-fail':d['結果']==='結果待ち'?'result-waiting':'';
     const ownerCls = d['対応者']==='マネージャー'?'owner-manager':'';
     const fileLink = d['資料リンク'] ? `<a href="${d['資料リンク']}" target="_blank" style="font-size:.7rem;color:var(--accent)">📎</a>` : '';
     return `<tr><td><span class="talent-badge-sm" style="background:${talentColor(d['タレント名'])}">${d['タレント名']}</span></td><td>${d['オーディション名']} ${fileLink}</td><td>${GENRE_ICONS[d['ジャンル']]||''} ${d['ジャンル']}</td><td>${fmtDate(d['締切日'])}</td><td><span class="status-badge ${sCls}">${d['ステータス']}</span></td><td class="${ownerCls}">${d['対応者']}</td><td>${rCls?`<span class="kanban-card-result ${rCls}">${d['結果']}</span>`:d['結果']||'-'}</td><td style="font-size:.75rem;color:var(--text-muted)">${d['アクション']||'-'}</td></tr>`;
@@ -591,7 +591,7 @@ function renderStatsDetail() {
   tel.innerHTML = talents.map(t => {
     const td = allData.filter(d => d['タレント名']===t);
     const pass = td.filter(d => d['結果']==='合格').length;
-    const done = td.filter(d => d['結果']==='合格'||d['結果']==='不合格').length;
+    const done = td.filter(d => d['結果']==='合格'||(d['結果']||'').startsWith('不合格')).length;
     const rate = done ? Math.round(pass/done*100) : '-';
     return `<div class="stat-bar-wrap"><div class="stat-bar-label"><span>${talentIcon(t)} ${t}</span><span>${td.length}件 (合格率: ${rate}${rate!=='-'?'%':''})</span></div><div class="stat-bar"><div class="stat-bar-fill" style="width:${td.length/maxTotal*100}%;background:${talentColor(t)}"></div></div></div>`;
   }).join('');
