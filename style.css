@@ -663,3 +663,72 @@ body { font-family: var(--font); background: var(--bg-alt); color: var(--text); 
   white-space: nowrap; flex-shrink: 0; padding: 2px 8px;
   background: var(--accent-light); border-radius: 10px;
 }
+
+/* ===== Stats Sub Tabs ===== */
+.stats-tabs {
+  display: flex; gap: 12px; margin-bottom: 24px;
+  border-bottom: 2px solid var(--border); padding-bottom: 8px;
+}
+.stats-tab-btn {
+  background: none; border: none; font-size: 0.95rem; font-weight: 600;
+  color: var(--text-muted); cursor: pointer; padding: 8px 16px;
+  position: relative; font-family: var(--font); transition: all var(--transition);
+  border-radius: var(--radius);
+}
+.stats-tab-btn:hover {
+  background: var(--bg-alt); color: var(--text);
+}
+.stats-tab-btn.active {
+  color: var(--text); background: var(--bg);
+  box-shadow: var(--shadow);
+}
+.stats-tab-btn.active::after {
+  content: ''; position: absolute; bottom: -10px; left: 0; right: 0;
+  height: 3px; background: var(--accent); border-radius: 3px 3px 0 0;
+}
+
+/* ===== Talent News List ===== */
+.news-list {
+  display: grid; grid-template-columns: 1fr; gap: 16px;
+}
+.news-loading {
+  text-align: center; padding: 40px; color: var(--text-muted); font-size: 0.9rem;
+}
+.news-card {
+  background: var(--bg-card); border: 1.5px solid var(--border); border-radius: var(--radius-lg);
+  padding: 16px; display: flex; flex-direction: column; gap: 8px;
+  transition: all var(--transition); text-decoration: none; color: inherit;
+  position: relative; overflow: hidden;
+}
+.news-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: var(--accent); transform: scaleY(0); transition: transform var(--transition);
+}
+.news-card:hover {
+  box-shadow: var(--shadow-lg); border-color: var(--text);
+}
+.news-card:hover::before {
+  transform: scaleY(1);
+}
+.news-card-meta {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+}
+.news-card-left {
+  display: flex; align-items: center; gap: 8px;
+}
+.news-talent-tag {
+  font-size: 0.65rem; font-weight: 700; padding: 2px 8px; border-radius: 8px;
+  color: #fff;
+}
+.news-media-tag {
+  font-size: 0.65rem; color: var(--text-secondary); background: var(--bg-alt);
+  padding: 2px 8px; border-radius: 8px; border: 1px solid var(--border);
+  font-weight: 500;
+}
+.news-date {
+  font-size: 0.68rem; color: var(--text-muted); font-weight: 500;
+}
+.news-title {
+  font-size: 0.95rem; font-weight: 700; line-height: 1.4;
+  color: var(--text);
+}

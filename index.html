@@ -221,18 +221,42 @@
 
         <!-- ===== STATS ===== -->
         <section class="content-section" id="section-stats">
-            <div class="stats-detail-grid">
-                <div class="card">
-                    <div class="card-header"><h3>📊 タレント別 応募数 / 合格率</h3></div>
-                    <div class="card-body" id="statsTalent"></div>
+            <!-- 統計サブタブ -->
+            <div class="stats-tabs">
+                <button class="stats-tab-btn active" data-stab="charts">📊 統計サマリー</button>
+                <button class="stats-tab-btn" data-stab="news">📰 タレントニュース</button>
+            </div>
+
+            <!-- タブ1: 統計グラフ -->
+            <div class="stats-tab-content active" id="stab-content-charts">
+                <div class="stats-detail-grid">
+                    <div class="card">
+                        <div class="card-header"><h3>📊 タレント別 応募数 / 合格率</h3></div>
+                        <div class="card-body" id="statsTalent"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3>🎬 ジャンル別 分布</h3></div>
+                        <div class="card-body" id="statsGenre"></div>
+                    </div>
+                    <div class="card card-wide">
+                        <div class="card-header"><h3>📈 月次推移</h3></div>
+                        <div class="card-body" id="statsMonthly"></div>
+                    </div>
                 </div>
-                <div class="card">
-                    <div class="card-header"><h3>🎬 ジャンル別 分布</h3></div>
-                    <div class="card-body" id="statsGenre"></div>
-                </div>
+            </div>
+
+            <!-- タブ2: 最新ニュース -->
+            <div class="stats-tab-content" id="stab-content-news" style="display:none">
                 <div class="card card-wide">
-                    <div class="card-header"><h3>📈 月次推移</h3></div>
-                    <div class="card-body" id="statsMonthly"></div>
+                    <div class="card-header">
+                        <h3>📰 タレント関連の最新ニュース</h3>
+                        <span class="card-subtitle">GoogleニュースRSSより自動収集（直近の掲載記事）</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="news-list" id="statsNewsList">
+                            <div class="news-loading">📰 ニュースを読み込み中...</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -426,6 +450,6 @@
         <p>データを読み込み中...</p>
     </div>
 
-    <script src="app.js?v=2"></script>
+    <script src="app.js?v=3"></script>
 </body>
 </html>

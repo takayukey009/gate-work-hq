@@ -111,6 +111,10 @@ function doGet(e) {
     return fixValidation();
   }
   
+  if (action === 'news') {
+    return getNewsData();
+  }
+  
   return ContentService
     .createTextOutput(JSON.stringify({ status: 'ok', message: 'GATE Audition API is running' }))
     .setMimeType(ContentService.MimeType.JSON);
@@ -257,7 +261,7 @@ function getSalesData() {
       if (!MANAGED_TALENTS.includes(name)) continue;
       
       const monthly = [];
-      for (let j = 1; j <= 12; j++) {
+      for (let j = 2; j <= 13; j++) {
         const raw = data[i][j];
         let val = 0;
         if (typeof raw === 'number') {
@@ -268,7 +272,7 @@ function getSalesData() {
         monthly.push(val);
       }
       
-      const totalRaw = data[i][13];
+      const totalRaw = data[i][14];
       let total = 0;
       if (typeof totalRaw === 'number') {
         total = totalRaw;
@@ -386,4 +390,167 @@ function updateStatusValidation() {
   
   Logger.log(`✅ ドロップダウン更新完了！「書類送付済」→「書類結果待ち」に ${updatedCount} 件変更しました。`);
   SpreadsheetApp.getActive()?.toast(`ステータス項目を更新しました（${updatedCount}件変換）`, '✅ 完了', 5);
+}
+
+// ============================================================
+// タレントニュース自動収集処理
+// ============================================================
+function collectNews() {
+  const talents = ['谷口彩菜', '寺崎ひな', '小久保宏紀', '島田和奏', '中塚智', '太田陽菜', '吉富千桜'];
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  
+  // 「ニュース」シートがなければ作成
+  let sheet = ss.getSheetByName('ニュース');
+  if (!sheet) {
+    sheet = ss.insertSheet('ニュース');
+    sheet.appendRow(['日付', 'タレント名', 'タイトル', 'リンク', 'メディア名']);
+    // 見出し行を固定・ボールドに
+    sheet.getRange(1, 1, 1, 5).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+  
+  talents.forEach(talent => {
+    // Google ニュース RSS (日本語、日本地域向けにエンコード)
+    const url = `https://news.google.com/rss/search?q=${encodeURIComponent(talent)}&hl=ja&gl=JP&ceid=JP:ja`;
+    try {
+      const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+      if (response.getResponseCode() !== 200) {
+        Logger.log(`Failed to fetch RSS for ${talent}: ${response.getResponseCode()}`);
+        return;
+      }
+      
+      const xml = response.getContentText();
+      const document = XmlService.parse(xml);
+      const root = document.getRootElement();
+      const channel = root.getChild('channel');
+      if (!channel) return;
+      const items = channel.getChildren('item');
+      
+      // 既存のリンク一覧を取得して重複判定に使用
+      const lastRow = sheet.getLastRow();
+      let existingLinks = [];
+      if (lastRow > 1) {
+        existingLinks = sheet.getRange(2, 4, lastRow - 1, 1).getValues().map(row => row[0]);
+      }
+      
+      // 直近5件を処理
+      items.slice(0, 5).forEach(item => {
+        const title = item.getChildText('title') || '';
+        const link = item.getChildText('link') || '';
+        const pubDateText = item.getChildText('pubDate') || '';
+        const source = item.getChild('source') ? item.getChild('source').getText() : 'Google News';
+        
+        // リンクがすでに登録されていなければ挿入
+        if (!existingLinks.includes(link) && link !== '') {
+          // pubDateのパース（簡易変換）
+          let dateStr = '';
+          try {
+            const parsedDate = new Date(pubDateText);
+            dateStr = Utilities.formatDate(parsedDate, 'Asia/Tokyo', 'yyyy/MM/dd HH:mm');
+          } catch(e) {
+            dateStr = pubDateText;
+          }
+          
+          sheet.appendRow([
+            dateStr,
+            talent,
+            title,
+            link,
+            source
+          ]);
+        }
+      });
+      
+      // 件数制限（タレントごとに最新30件を残して古いものを削除）
+      cleanOldNews(sheet, talent, 30);
+      
+    } catch (error) {
+      Logger.log(`Error processing news for ${talent}: ${error.message}`);
+    }
+  });
+}
+
+// 特定のタレントの古いニュースをクリーンアップする関数
+function cleanOldNews(sheet, talentName, maxCount) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return;
+  
+  const data = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
+  
+  // 行インデックスとデータをタレントで絞り込み（1-indexedなので行番号は index + 2）
+  const talentRows = [];
+  for (let i = 0; i < data.length; i++) {
+    if (data[i][1] === talentName) {
+      // 日付のパースに失敗した場合も安全に処理
+      let parsedDate;
+      try {
+        parsedDate = new Date(data[i][0]);
+        if (isNaN(parsedDate.getTime())) parsedDate = new Date(0);
+      } catch(e) {
+        parsedDate = new Date(0);
+      }
+      talentRows.push({
+        rowIndex: i + 2,
+        date: parsedDate
+      });
+    }
+  }
+  
+  // 日付の降順でソート（新しい順）
+  talentRows.sort((a, b) => b.date - a.date);
+  
+  // 制限数を超えた行を削除（下から削除していく必要があるため、行番号を降順ソートして削除）
+  if (talentRows.length > maxCount) {
+    const rowsToDelete = talentRows.slice(maxCount).map(r => r.rowIndex);
+    rowsToDelete.sort((a, b) => b - a); // 行番号の大きい順
+    
+    rowsToDelete.forEach(rowIdx => {
+      sheet.deleteRow(rowIdx);
+    });
+  }
+}
+
+// ニュースデータをJSONで返す関数
+function getNewsData() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('ニュース');
+    if (!sheet) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: true, data: [] }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: true, data: [] }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    const values = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
+    const result = values.map(row => {
+      let dateStr = '';
+      if (row[0] instanceof Date) {
+        dateStr = Utilities.formatDate(row[0], 'Asia/Tokyo', 'yyyy/MM/dd HH:mm');
+      } else {
+        dateStr = String(row[0]);
+      }
+      return {
+        '日付': dateStr,
+        'タレント名': String(row[1]),
+        'タイトル': String(row[2]),
+        'リンク': String(row[3]),
+        'メディア名': String(row[4])
+      };
+    });
+    
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: true, data: result }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: false, error: error.message }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 }

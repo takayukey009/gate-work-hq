@@ -16,6 +16,7 @@ const TYPE_ICONS = {'オーディション':'🎤','オファー':'📩','レギ
 const TYPE_COLORS = {'オーディション':'#e2000f','オファー':'#10B981','レギュラー':'#3B82F6','イベント':'#F59E0B','撮影':'#8B5CF6','その他':'#6B7280','営業':'#10B981'};
 
 let allData = [];
+let allNewsData = [];
 let calendarEvents = [];
 let currentTalent = 'all';
 let currentSection = 'dashboard';
@@ -94,11 +95,28 @@ const FALLBACK_DATA = [
   {ID:'12',タレント名:'太田陽菜',オーディション名:'舞台『月光』 ヒロイン',ジャンル:'舞台',締切日:'2026/04/20',オーディション日:'2026/05/05',ステータス:'完了',対応者:'本人',アクション:'',結果:'不合格',備考:'次回作で再挑戦',登録日:'2026/04/15',更新日:'2026/05/08',資料リンク:''},
   {ID:'13',タレント名:'太田陽菜',オーディション名:'ドラマ『翔ぶ季節』 レギュラー',ジャンル:'ドラマ',締切日:'2026/05/28',オーディション日:'2026/06/05',ステータス:'応募準備',対応者:'マネージャー',アクション:'オーディション用写真手配',結果:'未定',備考:'人気原作',登録日:'2026/05/11',更新日:'2026/05/12',資料リンク:''},
   {ID:'14',タレント名:'谷口彩菜',オーディション名:'アパレルECモデル',ジャンル:'CM',締切日:'2026/06/01',オーディション日:'',ステータス:'情報収集',対応者:'本人',アクション:'',結果:'未定',備考:'',登録日:'2026/05/12',更新日:'2026/05/12',資料リンク:''},
+  {ID:'35',タレント名:'寺崎ひな',オーディション名:'うどんチェーン店関係M亀　広告 キャスト選考',ジャンル:'広告',締切日:'2026/05/22',オーディション日:'',ステータス:'完了',対応者:'マネージャー',アクション:'',結果:'不合格',備考:'演出コンテ：https://app.jector.jp/dl/de1Wo73naFGvM3ajrYiaVssw PASS:0522',登録日:'2026/05/20',更新日:'2026/05/27',資料リンク:''},
 ];
 
 async function loadData() {
   try {
     allData = await fetchSheetData('シート1');
+    try {
+      if (GAS_WEBAPP_URL) {
+        const res = await fetch(GAS_WEBAPP_URL + '?action=news');
+        const json = await res.json();
+        if (json.success && json.data) {
+          allNewsData = json.data;
+        } else {
+          throw new Error((json && json.error) || 'APIエラー');
+        }
+      } else {
+        allNewsData = [];
+      }
+    } catch (newsErr) {
+      console.warn('ニュースデータの読み込みに失敗しました:', newsErr.message);
+      allNewsData = [];
+    }
     renderAll();
     document.getElementById('loadingOverlay').classList.add('hidden');
   } catch (e) {
@@ -182,6 +200,7 @@ function renderAll() {
   renderCalendar();
   renderStatsDetail();
   renderWorks();
+  renderNews();
 }
 
 // ===== Sales Data =====
@@ -429,8 +448,9 @@ function renderKanban() {
   data.forEach(d => {
     const s = d['ステータス'];
     const r = d['結果'];
+    if ((r || '').startsWith('不合格')) { buckets.complete.push(d); return; }
     if (s === '受注') { buckets.order.push(d); return; }
-    if (r === '合格' || (r || '').startsWith('不合格')) { buckets.complete.push(d); return; }
+    if (r === '合格') { buckets.complete.push(d); return; }
     if (s === '情報収集') buckets.info.push(d);
     else if (s === '応募準備') buckets.prep.push(d);
     else if (s === '書類結果待ち') buckets.sent.push(d);
@@ -695,6 +715,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('worksSearch')?.addEventListener('input', e => { worksSearch = e.target.value; renderWorks(); });
 
   // Load data
+  initStatsTabs();
   loadData();
 });
 
@@ -1025,4 +1046,64 @@ function renderWorks() {
       <td style="font-size:.75rem;color:var(--text-muted)">${d['備考']||'-'}</td>
     </tr>`;
   }).join('') || '<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📭</div><p>該当する案件はありません</p></div></td></tr>';
+}
+
+// ===== Stats Tabs Initialization =====
+function initStatsTabs() {
+  document.querySelectorAll('.stats-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.stats-tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const tabId = btn.dataset.stab;
+      document.querySelectorAll('.stats-tab-content').forEach(c => c.style.display = 'none');
+      const targetContent = document.getElementById('stab-content-' + tabId);
+      if (targetContent) {
+        targetContent.style.display = '';
+      }
+      if (tabId === 'news') {
+        renderNews();
+      }
+    });
+  });
+}
+
+// ===== Render News =====
+function renderNews() {
+  const el = document.getElementById('statsNewsList');
+  if (!el) return;
+  
+  let data = allNewsData || [];
+  if (currentTalent !== 'all') {
+    data = data.filter(n => n['タレント名'] === currentTalent);
+  }
+  
+  if (!data.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>該当するニュースはありません</p></div>';
+    return;
+  }
+  
+  // 日付の降順（新しい順）でソート
+  data.sort((a, b) => {
+    const da = new Date(a['日付'] || 0);
+    const db = new Date(b['日付'] || 0);
+    return db - da;
+  });
+  
+  el.innerHTML = data.map(n => {
+    const tColor = talentColor(n['タレント名']);
+    const titleClean = (n['タイトル'] || '').replace(/"/g, '&quot;');
+    const linkUrl = n['リンク'] || '#';
+    const media = n['メディア名'] || 'Google News';
+    const dateStr = n['日付'] || '';
+    return `<a href="${linkUrl}" target="_blank" class="news-card">
+      <div class="news-card-meta">
+        <div class="news-card-left">
+          <span class="news-talent-tag" style="background:${tColor}">${n['タレント名']}</span>
+          <span class="news-media-tag">${media}</span>
+        </div>
+        <span class="news-date">${dateStr}</span>
+      </div>
+      <div class="news-title">${titleClean}</div>
+    </a>`;
+  }).join('');
 }
