@@ -749,10 +749,7 @@ function callGeminiVision(base64Image, mimeType) {
           }
         ]
       }
-    ],
-    generationConfig: {
-      responseMimeType: "application/json"
-    }
+    ]
   };
   
   const options = {
@@ -770,6 +767,7 @@ function callGeminiVision(base64Image, mimeType) {
   }
   
   const result = JSON.parse(responseText);
-  const jsonText = result.candidates[0].content.parts[0].text;
+  let jsonText = result.candidates[0].content.parts[0].text;
+  jsonText = jsonText.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
   return JSON.parse(jsonText);
 }
