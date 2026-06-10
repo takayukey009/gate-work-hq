@@ -27,8 +27,13 @@ let calYear, calMonth;
 
 // ===== Data Fetch =====
 async function fetchSheetData(sheet) {
+  // 匿名アクセス時のシート切り替えバグ（gviz/tqでsheetパラメータが非ログイン時に効かない問題）を回避するため、gidを使用
+  let gid = '0';
+  if (sheet === '営業アタック') {
+    gid = '693310836';
+  }
   // Google Visualization APIの型の制約（日付列にあるテキストが削除される問題）を回避するため、CSVで取得
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&sheet=${encodeURIComponent(sheet)}&_=${Date.now()}`;
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}&_=${Date.now()}`;
   const res = await fetch(url);
   const text = await res.text();
   return parseCSV(text);
