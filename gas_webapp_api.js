@@ -750,8 +750,8 @@ function callGeminiVision(base64Image, mimeType) {
         ]
       }
     ],
-    generation_config: {
-      response_mime_type: "application/json"
+    generationConfig: {
+      responseMimeType: "application/json"
     }
   };
   
