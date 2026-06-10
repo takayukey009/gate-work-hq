@@ -17,7 +17,10 @@ const TYPE_COLORS = {'オーディション':'#e2000f','オファー':'#10B981',
 
 let allData = [];
 let allNewsData = [];
+let allSalesAttackData = [];
 let calendarEvents = [];
+let salesSearch = '';
+let salesFilter = 'all';
 let currentTalent = 'all';
 let currentSection = 'dashboard';
 let calYear, calMonth;
@@ -70,7 +73,8 @@ function parseCSV(text) {
   const headers = result[0].map(h => h.trim());
   const data = [];
   for (let i = 1; i < result.length; i++) {
-    if (result[i].length === 1 && result[i][0].trim() === '') continue; // 空行をスキップ
+    // 全てのカラムが空または空白文字のみの行をスキップ
+    if (result[i].every(val => !val || val.trim() === '')) continue;
     const obj = {};
     headers.forEach((h, index) => {
       obj[h] = result[i][index] || '';
@@ -102,6 +106,12 @@ async function loadData() {
   try {
     allData = await fetchSheetData('シート1');
     try {
+      allSalesAttackData = await fetchSheetData('営業アタック');
+    } catch (salesErr) {
+      console.warn('営業アタックデータの読み込みに失敗しました:', salesErr.message);
+      allSalesAttackData = [];
+    }
+    try {
       if (GAS_WEBAPP_URL) {
         const res = await fetch(GAS_WEBAPP_URL + '?action=news');
         const json = await res.json();
@@ -122,6 +132,7 @@ async function loadData() {
   } catch (e) {
     console.warn('スプレッドシート読み込み失敗。フォールバックデータを使用:', e.message);
     allData = FALLBACK_DATA;
+    allSalesAttackData = [];
     renderAll();
     document.getElementById('loadingOverlay').classList.add('hidden');
   }
@@ -201,6 +212,7 @@ function renderAll() {
   renderStatsDetail();
   renderWorks();
   renderNews();
+  renderSalesAttackAll();
 }
 
 // ===== Sales Data =====
@@ -645,8 +657,11 @@ function showSection(section) {
   document.getElementById('section-'+section)?.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelector(`[data-section="${section}"]`)?.classList.add('active');
-  const titles = {dashboard:'ダッシュボード',kanban:'カンバン',works:'仕事一覧',list:'リスト（AD）',calendar:'カレンダー',stats:'統計'};
+  const titles = {dashboard:'ダッシュボード',kanban:'カンバン',works:'仕事一覧',list:'リスト（AD）',calendar:'カレンダー',stats:'統計',sales_attack:'営業アタック'};
   document.getElementById('pageTitle').textContent = titles[section] || section;
+  if (section === 'sales_attack') {
+    renderSalesAttackAll();
+  }
   // Close mobile sidebar
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebarOverlay').classList.remove('show');
@@ -713,6 +728,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
   document.getElementById('worksSearch')?.addEventListener('input', e => { worksSearch = e.target.value; renderWorks(); });
+
+  // Sales Search
+  document.getElementById('salesSearch')?.addEventListener('input', e => {
+    salesSearch = e.target.value;
+    renderSalesAttackAll();
+  });
+
+  // Sales Type Filter
+  document.querySelectorAll('#salesTypeFilter .filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#salesTypeFilter .filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      salesFilter = btn.dataset.sfilter;
+      renderSalesAttackAll();
+    });
+  });
 
   // Load data
   initStatsTabs();
@@ -807,7 +838,10 @@ function selectDriveFile(id, name, url) {
 
 // ESCキーでモーダルを閉じる
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeAddModal();
+  if (e.key === 'Escape') {
+    closeAddModal();
+    closeSalesAddModal();
+  }
 });
 
 // ===== File Drop Zone =====
@@ -1106,4 +1140,274 @@ function renderNews() {
       <div class="news-title">${titleClean}</div>
     </a>`;
   }).join('');
+}
+
+// ===== Sales Attack Render Functions =====
+function getFilteredSalesAttack() {
+  let data = allSalesAttackData || [];
+  // タレントフィルター (提案タレントに指定のタレントが含まれるか)
+  if (currentTalent !== 'all') {
+    data = data.filter(d => (d['提案タレント'] || '').includes(currentTalent));
+  }
+  // 種別フィルター (制作会社, 代理店, キャスティング会社, クライアント直)
+  if (salesFilter !== 'all') {
+    data = data.filter(d => d['アプローチ先種別'] === salesFilter);
+  }
+  // 検索クエリ
+  if (salesSearch) {
+    const q = salesSearch.toLowerCase();
+    data = data.filter(d => 
+      (d['社名'] || '').toLowerCase().includes(q) ||
+      (d['担当者名'] || '').toLowerCase().includes(q) ||
+      (d['提案タレント'] || '').toLowerCase().includes(q) ||
+      (d['備考/メモ'] || '').toLowerCase().includes(q)
+    );
+  }
+  return data;
+}
+
+function renderSalesAttackAll() {
+  renderSalesAttackToDo();
+  renderSalesAttackKanban();
+  renderSalesAttackList();
+}
+
+function renderSalesAttackToDo() {
+  const el = document.getElementById('salesTodoList');
+  const countEl = document.getElementById('salesActionCount');
+  if (!el) return;
+  
+  const data = getFilteredSalesAttack().filter(d => d['次回アクション予定日'] && d['アタックステータス'] !== '受注・決定' && d['アタックステータス'] !== '休眠');
+  
+  // 日付昇順でソート
+  data.sort((a, b) => {
+    const da = parseDate(a['次回アクション予定日']) || new Date(8640000000000000);
+    const db = parseDate(b['次回アクション予定日']) || new Date(8640000000000000);
+    return da - db;
+  });
+  
+  const activeToDo = data.slice(0, 6);
+  if (countEl) countEl.textContent = data.length;
+  
+  if (!activeToDo.length) {
+    el.innerHTML = '<div class="empty-state" style="padding:20px;grid-column:1/-1;"><p>📅 次回アクション予定のToDoはありません</p></div>';
+    return;
+  }
+  
+  el.innerHTML = activeToDo.map(d => {
+    const rating = d['確度/感触'] || 'C';
+    const ratingClass = `rating-${rating.toLowerCase()}`;
+    const daysLeft = daysUntil(d['次回アクション予定日']);
+    const urgent = daysLeft <= 3 ? 'style="color:var(--accent);font-weight:700;"' : '';
+    const dateLabel = daysLeft === 0 ? '今日' : daysLeft < 0 ? '期限超過' : `${daysLeft}日後`;
+    
+    const talentBadge = d['提案タレント'] ? d['提案タレント'].split(',').map(t => `<span class="talent-badge-sm" style="background:${talentColor(t.trim())};margin-right:2px;">${t.trim()}</span>`).join('') : '';
+    
+    return `<div class="sales-todo-card">
+      <div class="sales-todo-header">
+        <span class="sales-todo-company">${d['社名']}</span>
+        <span class="sales-todo-date" ${urgent}>${fmtDate(d['次回アクション予定日'])} (${dateLabel})</span>
+      </div>
+      <div class="sales-todo-action">👉 ${d['次回アクション内容'] || 'アクション未定'}</div>
+      <div class="sales-todo-meta">
+        <span class="sales-rating-badge ${ratingClass}">確度: ${rating}</span>
+        ${talentBadge}
+        <span style="margin-left:auto;">担当: ${d['担当者名'] || '-'}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderSalesAttackKanban() {
+  const data = getFilteredSalesAttack();
+  const buckets = {
+    '未アプローチ': [],
+    'コンタクト中': [],
+    '面談済': [],
+    '案件検討中': [],
+    '受注・決定': [],
+    '休眠': []
+  };
+  
+  data.forEach(d => {
+    const status = d['アタックステータス'] || '未アプローチ';
+    if (buckets[status]) {
+      buckets[status].push(d);
+    } else {
+      buckets['未アプローチ'].push(d);
+    }
+  });
+  
+  const keyMap = {
+    '未アプローチ': 'unapproached',
+    'コンタクト中': 'contact',
+    '面談済': 'interviewed',
+    '案件検討中': 'reviewing',
+    '受注・決定': 'ordered',
+    '休眠': 'dormant'
+  };
+  
+  Object.entries(buckets).forEach(([status, list]) => {
+    const key = keyMap[status];
+    const container = document.getElementById(`scards-${key}`);
+    const countEl = document.getElementById(`scount-${key}`);
+    if (!container) return;
+    
+    container.innerHTML = list.map(d => {
+      const rating = d['確度/感触'] || 'C';
+      const ratingClass = `rating-${rating.toLowerCase()}`;
+      const method = d['アプローチ方法'] ? ` <span style="font-size:.65rem;color:var(--text-muted)">(${d['アプローチ方法']})</span>` : '';
+      const talentBadge = d['提案タレント'] ? d['提案タレント'].split(',').map(t => `<span class="talent-badge-sm" style="background:${talentColor(t.trim())};margin-top:4px;display:inline-block;margin-right:2px;">${t.trim()}</span>`).join('') : '';
+      
+      // 備考に含まれる画像リンクの抽出
+      let imageLink = '';
+      const imgMatch = (d['備考/メモ'] || '').match(/(https:\/\/drive\.google\.com\/[^\s]+)/);
+      if (imgMatch) {
+        imageLink = `<div style="margin-top:6px;"><a href="${imgMatch[0]}" target="_blank" style="font-size:.65rem;color:var(--accent);text-decoration:none;">🖼️ 名刺画像</a></div>`;
+      }
+      
+      return `<div class="sales-kanban-card">
+        <span class="sales-kanban-card-badge">${d['アプローチ先種別']}</span>
+        <div class="sales-kanban-card-title">${d['社名']}</div>
+        <div class="sales-kanban-card-meta">
+          <span class="sales-rating-badge ${ratingClass}">確度: ${rating}</span>
+          ${method}
+          <div>担当: ${d['担当者名'] || '-'}</div>
+        </div>
+        <div style="margin-top:4px;">${talentBadge}</div>
+        ${d['次回アクション内容'] ? `<div class="sales-kanban-card-desc">📌 ToDo: ${d['次回アクション内容']}</div>` : ''}
+        ${imageLink}
+      </div>`;
+    }).join('') || '<div style="text-align:center;color:var(--text-muted);font-size:.75rem;padding:20px">なし</div>';
+    
+    if (countEl) countEl.textContent = list.length;
+  });
+}
+
+function renderSalesAttackList() {
+  const el = document.getElementById('salesBody');
+  if (!el) return;
+  const data = getFilteredSalesAttack();
+  
+  el.innerHTML = data.map(d => {
+    const rating = d['確度/感触'] || '-';
+    const ratingClass = rating !== '-' ? `rating-${rating.toLowerCase()}` : '';
+    const dateStr = d['最終アプローチ日'] ? fmtDate(d['最終アプローチ日']) : '-';
+    const nextDateStr = d['次回アクション予定日'] ? fmtDate(d['次回アクション予定日']) : '-';
+    const nextAction = d['次回アクション内容'] ? `<div>${nextDateStr}: ${d['次回アクション内容']}</div>` : '-';
+    
+    // 備考の画像リンク対応
+    let notesText = d['備考/メモ'] || '-';
+    const imgMatch = notesText.match(/(https:\/\/drive\.google\.com\/[^\s]+)/);
+    if (imgMatch) {
+      notesText = notesText.replace(imgMatch[0], `<a href="${imgMatch[0]}" target="_blank">リンク</a>`);
+    }
+    
+    return `<tr>
+      <td style="font-weight:700;">${d['社名']}</td>
+      <td><span class="type-badge" style="background:#6B7280">${d['アプローチ先種別']}</span></td>
+      <td>${d['担当者名'] || '-'}</td>
+      <td style="font-size:.75rem;">${d['連絡先'] || '-'}</td>
+      <td>${dateStr}</td>
+      <td>${d['アプローチ方法'] || '-'}</td>
+      <td>${d['提案タレント'] ? d['提案タレント'].split(',').map(t => `<span class="talent-badge-sm" style="background:${talentColor(t.trim())};margin-right:2px;">${t.trim()}</span>`).join('') : '-'}</td>
+      <td>${rating !== '-' ? `<span class="sales-rating-badge ${ratingClass}">${rating}</span>` : '-'}</td>
+      <td><span class="status-badge status-prep">${d['アタックステータス']}</span></td>
+      <td style="font-size:.75rem;">${nextAction}</td>
+      <td style="font-size:.75rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${d['備考/メモ']}">${notesText}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="11"><div class="empty-state"><div class="empty-icon">📭</div><p>営業アタックデータはありません</p></div></td></tr>';
+}
+
+// ===== Sales Attack Modal Functions =====
+function openSalesAddModal() {
+  document.getElementById('salesAddModal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSalesAddModal() {
+  document.getElementById('salesAddModal').classList.remove('show');
+  document.body.style.overflow = '';
+  document.getElementById('salesAddForm').reset();
+}
+
+async function handleSalesAddSubmit(e) {
+  e.preventDefault();
+  const btn = document.getElementById('salesSubmitBtn');
+  const text = document.getElementById('salesSubmitText');
+  const spinner = document.getElementById('salesSubmitSpinner');
+  btn.disabled = true;
+  text.textContent = '送信中...';
+  spinner.classList.remove('hidden');
+  
+  const lastApproachDateRaw = document.getElementById('sf-lastApproachDate').value;
+  const lastApproachDate = lastApproachDateRaw ? lastApproachDateRaw.replace(/-/g, '/') : '';
+  
+  const nextApproachDateRaw = document.getElementById('sf-nextApproachDate').value;
+  const nextApproachDate = nextApproachDateRaw ? nextApproachDateRaw.replace(/-/g, '/') : '';
+  
+  const formData = {
+    sheetType: 'sales_attack',
+    companyName: document.getElementById('sf-companyName').value,
+    companyType: document.getElementById('sf-companyType').value,
+    contactName: document.getElementById('sf-contactName').value,
+    contactInfo: document.getElementById('sf-contactInfo').value,
+    lastApproachDate: lastApproachDate,
+    approachMethod: document.getElementById('sf-approachMethod').value,
+    nextApproachDate: nextApproachDate,
+    nextApproachAction: document.getElementById('sf-nextApproachAction').value,
+    status: document.getElementById('sf-status').value,
+    rating: document.getElementById('sf-rating').value,
+    talentName: document.getElementById('sf-talentName').value,
+    notes: document.getElementById('sf-notes').value
+  };
+  
+  try {
+    if (GAS_WEBAPP_URL) {
+      const res = await fetch(GAS_WEBAPP_URL, {
+        method: 'POST',
+        body: JSON.stringify(formData),
+      });
+      const result = await res.json();
+      if (result.success) {
+        showToast('✅ 営業アタックを追加しました！');
+      } else {
+        throw new Error(result.error || '送信失敗');
+      }
+    } else {
+      showToast('📝 ローカルデータに追加しました');
+    }
+    
+    // ローカルデータ反映
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}/${today.getMonth()+1}/${today.getDate()}`;
+    allSalesAttackData.push({
+      ID: String(allSalesAttackData.length + 1),
+      社名: formData.companyName,
+      アプローチ先種別: formData.companyType,
+      担当者名: formData.contactName,
+      連絡先: formData.contactInfo,
+      最終アプローチ日: formData.lastApproachDate,
+      アプローチ方法: formData.approachMethod,
+      次回アクション予定日: formData.nextApproachDate,
+      次回アクション内容: formData.nextApproachAction,
+      アタックステータス: formData.status,
+      提案タレント: formData.talentName,
+      '確度/感触': formData.rating,
+      '備考/メモ': formData.notes,
+      登録日: todayStr,
+      更新日: todayStr
+    });
+    
+    renderSalesAttackAll();
+    closeSalesAddModal();
+  } catch (err) {
+    console.error(err);
+    showToast('❌ エラー: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    text.textContent = '追加する';
+    spinner.classList.add('hidden');
+  }
+  return false;
 }

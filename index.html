@@ -29,6 +29,10 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg>
                 <span>カンバン</span>
             </a>
+            <a href="#" class="nav-item" data-section="sales_attack" id="nav-sales-attack">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                <span>営業アタック</span>
+            </a>
             <a href="#" class="nav-item" data-section="works" id="nav-works">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
                 <span>仕事一覧</span>
@@ -296,6 +300,98 @@
                 </table>
             </div>
         </section>
+
+        <!-- ===== SALES ATTACK ===== -->
+        <section class="content-section" id="section-sales_attack">
+            <div class="section-toolbar">
+                <div class="search-box-list">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" placeholder="社名・担当者・提案タレントで検索..." id="salesSearch">
+                </div>
+                <div class="filter-group" id="salesTypeFilter">
+                    <button class="filter-btn active" data-sfilter="all">すべて</button>
+                    <button class="filter-btn" data-sfilter="制作会社">制作会社</button>
+                    <button class="filter-btn" data-sfilter="代理店">代理店</button>
+                    <button class="filter-btn" data-sfilter="キャスティング会社">キャスティング</button>
+                    <button class="filter-btn" data-sfilter="クライアント直">クライアント直</button>
+                </div>
+                <button class="btn btn-primary" onclick="openSalesAddModal()">＋ アタック追加</button>
+            </div>
+
+            <div class="action-panel" id="salesActionPanel" style="margin-bottom:20px;">
+                <div class="action-panel-header">
+                    <h2>📅 次回営業ToDo</h2>
+                    <span class="action-badge" id="salesActionCount">0</span>
+                </div>
+                <div class="sales-todo-grid" id="salesTodoList" style="padding: 16px;">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+
+            <div class="card card-wide" style="margin-bottom:20px;">
+                <div class="card-header">
+                    <h3>📊 営業プロセス・カンバン</h3>
+                    <span class="card-subtitle">アプローチ進捗状況</span>
+                </div>
+                <div class="card-body" style="padding:12px;">
+                    <div class="kanban-board sales-kanban-board" id="salesKanbanBoard">
+                        <div class="kanban-column" data-sstatus="未アプローチ">
+                            <div class="kanban-header"><span class="kanban-dot" style="background:#6B7280"></span><h4>未アプローチ</h4><span class="kanban-count" id="scount-unapproached">0</span></div>
+                            <div class="kanban-cards" id="scards-unapproached"></div>
+                        </div>
+                        <div class="kanban-column" data-sstatus="コンタクト中">
+                            <div class="kanban-header"><span class="kanban-dot" style="background:#F59E0B"></span><h4>コンタクト中</h4><span class="kanban-count" id="scount-contact">0</span></div>
+                            <div class="kanban-cards" id="scards-contact"></div>
+                        </div>
+                        <div class="kanban-column" data-sstatus="面談済">
+                            <div class="kanban-header"><span class="kanban-dot" style="background:#3B82F6"></span><h4>面談済</h4><span class="kanban-count" id="scount-interviewed">0</span></div>
+                            <div class="kanban-cards" id="scards-interviewed"></div>
+                        </div>
+                        <div class="kanban-column" data-sstatus="案件検討中">
+                            <div class="kanban-header"><span class="kanban-dot" style="background:#8B5CF6"></span><h4>案件検討中</h4><span class="kanban-count" id="scount-reviewing">0</span></div>
+                            <div class="kanban-cards" id="scards-reviewing"></div>
+                        </div>
+                        <div class="kanban-column" data-sstatus="受注・決定">
+                            <div class="kanban-header"><span class="kanban-dot" style="background:#10B981"></span><h4>受注・決定</h4><span class="kanban-count" id="scount-ordered">0</span></div>
+                            <div class="kanban-cards" id="scards-ordered"></div>
+                        </div>
+                        <div class="kanban-column" data-sstatus="休眠">
+                            <div class="kanban-header"><span class="kanban-dot" style="background:#EF4444"></span><h4>休眠</h4><span class="kanban-count" id="scount-dormant">0</span></div>
+                            <div class="kanban-cards" id="scards-dormant"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card card-wide">
+                <div class="card-header">
+                    <h3>📋 営業アタック全件リスト</h3>
+                    <span class="card-subtitle">アタックリスト一覧（全件）</span>
+                </div>
+                <div class="card-body">
+                    <div class="list-table-wrap">
+                        <table class="list-table" id="salesTable">
+                            <thead>
+                                <tr>
+                                    <th>社名</th>
+                                    <th>種別</th>
+                                    <th>担当者</th>
+                                    <th>連絡先</th>
+                                    <th>最終アプローチ</th>
+                                    <th>方法</th>
+                                    <th>提案タレント</th>
+                                    <th>確度</th>
+                                    <th>ステータス</th>
+                                    <th>次回ToDo</th>
+                                    <th>備考</th>
+                                </tr>
+                            </thead>
+                            <tbody id="salesBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- FAB: 新規追加ボタン -->
@@ -448,6 +544,101 @@
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-spinner"></div>
         <p>データを読み込み中...</p>
+    </div>
+
+    <!-- 営業アタック新規追加モーダル -->
+    <div class="modal-overlay" id="salesAddModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>＋ 営業アタック追加</h2>
+                <button class="modal-close" onclick="closeSalesAddModal()">✕</button>
+            </div>
+            <form id="salesAddForm" onsubmit="return handleSalesAddSubmit(event)">
+                <div class="form-grid">
+                    <div class="form-group form-wide">
+                        <label for="sf-companyName">社名 *</label>
+                        <input type="text" id="sf-companyName" placeholder="例: 株式会社〇〇テレビ / 広告代理店△△" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="sf-companyType">アプローチ先種別 *</label>
+                        <select id="sf-companyType" required>
+                            <option value="制作会社">🎬 制作会社</option>
+                            <option value="代理店">📢 代理店</option>
+                            <option value="キャスティング会社">👥 キャスティング会社</option>
+                            <option value="クライアント直">🏢 クライアント直</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="sf-contactName">担当者名</label>
+                        <input type="text" id="sf-contactName" placeholder="例: 山田太郎 プロデューサー">
+                    </div>
+                    <div class="form-group form-wide">
+                        <label for="sf-contactInfo">連絡先（電話/メールなど）</label>
+                        <input type="text" id="sf-contactInfo" placeholder="例: 090-XXXX-XXXX, test@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="sf-lastApproachDate">最終アプローチ日</label>
+                        <input type="date" id="sf-lastApproachDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="sf-approachMethod">アプローチ方法</label>
+                        <select id="sf-approachMethod">
+                            <option value="">選択...</option>
+                            <option value="メール">📧 メール</option>
+                            <option value="対面">🤝 对面</option>
+                            <option value="電話">📞 電話</option>
+                            <option value="会食">🍶 会食</option>
+                            <option value="イベント">🎪 イベント</option>
+                            <option value="その他">📋 その他</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="sf-nextApproachDate">次回アクション予定日</label>
+                        <input type="date" id="sf-nextApproachDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="sf-nextApproachAction">次回アクション内容</label>
+                        <input type="text" id="sf-nextApproachAction" placeholder="例: 企画書をメール送付する">
+                    </div>
+                    <div class="form-group">
+                        <label for="sf-status">アタックステータス</label>
+                        <select id="sf-status">
+                            <option value="未アプローチ">未アプローチ</option>
+                            <option value="コンタクト中">コンタクト中</option>
+                            <option value="面談済">面談済</option>
+                            <option value="案件検討中">案件検討中</option>
+                            <option value="受注・決定">受注・決定</option>
+                            <option value="休眠">休眠</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="sf-rating">確度/感触</label>
+                        <select id="sf-rating">
+                            <option value="">選択...</option>
+                            <option value="A">⭐ A (感触大・受注目前)</option>
+                            <option value="B">👍 B (感触あり・継続提案)</option>
+                            <option value="C">💬 C (コンタクトあり・見込み薄)</option>
+                            <option value="D">❌ D (反応なし)</option>
+                        </select>
+                    </div>
+                    <div class="form-group form-wide">
+                        <label for="sf-talentName">提案タレント（複数選択の場合はカンマ区切り）</label>
+                        <input type="text" id="sf-talentName" placeholder="例: 谷口彩菜, 寺崎ひな">
+                    </div>
+                    <div class="form-group form-wide">
+                        <label for="sf-notes">備考/メモ</label>
+                        <textarea id="sf-notes" rows="3" placeholder="例: 新規のショートドラマ企画について提案中" style="padding:10px 14px; border:1.5px solid var(--border); border-radius:var(--radius); font-size:.9rem; font-family:var(--font); background:var(--bg); color:var(--text); width:100%; outline:none; transition:all var(--transition); resize:vertical;"></textarea>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeSalesAddModal()">キャンセル</button>
+                    <button type="submit" class="btn btn-primary" id="salesSubmitBtn">
+                        <span id="salesSubmitText">追加する</span>
+                        <span id="salesSubmitSpinner" class="btn-spinner hidden"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script src="app.js?v=3"></script>

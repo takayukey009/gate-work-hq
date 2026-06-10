@@ -732,3 +732,132 @@ body { font-family: var(--font); background: var(--bg-alt); color: var(--text); 
   font-size: 0.95rem; font-weight: 700; line-height: 1.4;
   color: var(--text);
 }
+
+/* ===== Sales Attack Grid & Kanban ===== */
+.sales-kanban-board {
+  grid-template-columns: repeat(6, 1fr) !important;
+}
+.sales-todo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  padding: 8px 0;
+}
+.sales-todo-card {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sales-todo-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--accent);
+}
+.sales-todo-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+  border-color: var(--text);
+}
+.sales-todo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sales-todo-company {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+.sales-todo-date {
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: var(--accent-light);
+  color: var(--accent);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.sales-todo-action {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.sales-todo-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+.sales-rating-badge {
+  font-weight: 800;
+  font-size: 0.7rem;
+  padding: 1px 6px;
+  border-radius: 3px;
+  display: inline-block;
+}
+.rating-a { background: #fee2e2; color: #b91c1c; }
+.rating-b { background: #fef3c7; color: #d97706; }
+.rating-c { background: #e0f2fe; color: #0369a1; }
+.rating-d { background: #f3f4f6; color: #4b5563; }
+
+.sales-kanban-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  transition: all var(--transition);
+  position: relative;
+  margin-bottom: 10px;
+}
+.sales-kanban-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+.sales-kanban-card-title {
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+}
+.sales-kanban-card-meta {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+.sales-kanban-card-desc {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  border-top: 1px dashed var(--border);
+  padding-top: 6px;
+}
+.sales-kanban-card-badge {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #fff;
+  background: #6B7280;
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-bottom: 4px;
+}
+@media (max-width: 768px) {
+  .sales-kanban-board {
+    grid-template-columns: 1fr !important;
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 12px;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+}
