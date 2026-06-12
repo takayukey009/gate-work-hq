@@ -1248,7 +1248,18 @@ function renderSalesAttackToDo() {
 }
 
 function renderSalesAttackKanban() {
-  const data = getFilteredSalesAttack();
+  const data = [...getFilteredSalesAttack()];
+  
+  // 最終アプローチ日の降順でソート（日付が空の場合は末尾へ）
+  data.sort((a, b) => {
+    const da = parseDate(a['最終アプローチ日']);
+    const db = parseDate(b['最終アプローチ日']);
+    if (da && db) return db - da;
+    if (da) return -1;
+    if (db) return 1;
+    return 0;
+  });
+
   const buckets = {
     '未アプローチ': [],
     'コンタクト中': [],
