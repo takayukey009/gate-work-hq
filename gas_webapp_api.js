@@ -195,7 +195,7 @@ function fixValidation() {
       const sTypeRange = salesSheet.getRange('C2:C199');
       sTypeRange.clearDataValidations();
       const sTypeRule = SpreadsheetApp.newDataValidation()
-        .requireValueInList(['制作会社', '代理店', 'キャスティング会社', 'クライアント直'], true)
+        .requireValueInList(['制作会社', '代理店', 'キャスティング会社', 'クライアント直', 'レーベル'], true)
         .setAllowInvalid(false)
         .build();
       sTypeRange.setDataValidation(sTypeRule);
@@ -205,7 +205,7 @@ function fixValidation() {
       sMethodRange.clearDataValidations();
       const sMethodRule = SpreadsheetApp.newDataValidation()
         .requireValueInList(['メール', '対面', '電話', '会食', 'イベント', 'その他'], true)
-        .setAllowInvalid(false)
+        .setAllowInvalid(true)
         .build();
       sMethodRange.setDataValidation(sMethodRule);
       
@@ -213,7 +213,7 @@ function fixValidation() {
       const sStatusRange = salesSheet.getRange('J2:J199');
       sStatusRange.clearDataValidations();
       const sStatusRule = SpreadsheetApp.newDataValidation()
-        .requireValueInList(['未アプローチ', 'コンタクト中', '面談済', '案件検討中', '受注・決定', '休眠'], true)
+        .requireValueInList(['未アプローチ', 'コンタクト中', '面談済', '案件検討中', 'WS講師依頼済', '受注・決定', '休眠'], true)
         .setAllowInvalid(false)
         .build();
       sStatusRange.setDataValidation(sStatusRule);
@@ -222,7 +222,7 @@ function fixValidation() {
       const sRatingRange = salesSheet.getRange('L2:L199');
       sRatingRange.clearDataValidations();
       const sRatingRule = SpreadsheetApp.newDataValidation()
-        .requireValueInList(['A', 'B', 'C', 'D'], true)
+        .requireValueInList(['S', 'A', 'B', 'C', 'D'], true)
         .setAllowInvalid(false)
         .build();
       sRatingRange.setDataValidation(sRatingRule);

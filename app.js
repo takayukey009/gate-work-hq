@@ -1230,6 +1230,7 @@ function renderSalesAttackKanban() {
     'コンタクト中': [],
     '面談済': [],
     '案件検討中': [],
+    'WS講師依頼済': [],
     '受注・決定': [],
     '休眠': []
   };
@@ -1248,6 +1249,7 @@ function renderSalesAttackKanban() {
     'コンタクト中': 'contact',
     '面談済': 'interviewed',
     '案件検討中': 'reviewing',
+    'WS講師依頼済': 'ws-requested',
     '受注・決定': 'ordered',
     '休眠': 'dormant'
   };
@@ -1278,6 +1280,7 @@ function renderSalesAttackKanban() {
           <span class="sales-rating-badge ${ratingClass}">確度: ${rating}</span>
           ${method}
           <div>担当: ${d['担当者名'] || '-'}</div>
+          ${d['最終アプローチ日'] ? `<div>最終: ${fmtDate(d['最終アプローチ日'])}</div>` : ''}
         </div>
         <div style="margin-top:4px;">${talentBadge}</div>
         ${d['次回アクション内容'] ? `<div class="sales-kanban-card-desc">📌 ToDo: ${d['次回アクション内容']}</div>` : ''}

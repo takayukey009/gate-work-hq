@@ -806,6 +806,7 @@ body { font-family: var(--font); background: var(--bg-alt); color: var(--text); 
   border-radius: 3px;
   display: inline-block;
 }
+.rating-s { background: #fae8ff; color: #86198f; }
 .rating-a { background: #fee2e2; color: #b91c1c; }
 .rating-b { background: #fef3c7; color: #d97706; }
 .rating-c { background: #e0f2fe; color: #0369a1; }

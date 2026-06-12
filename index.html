@@ -351,6 +351,10 @@
                             <div class="kanban-header"><span class="kanban-dot" style="background:#8B5CF6"></span><h4>案件検討中</h4><span class="kanban-count" id="scount-reviewing">0</span></div>
                             <div class="kanban-cards" id="scards-reviewing"></div>
                         </div>
+                        <div class="kanban-column" data-sstatus="WS講師依頼済">
+                            <div class="kanban-header"><span class="kanban-dot" style="background:#EC4899"></span><h4>WS講師依頼済</h4><span class="kanban-count" id="scount-ws-requested">0</span></div>
+                            <div class="kanban-cards" id="scards-ws-requested"></div>
+                        </div>
                         <div class="kanban-column" data-sstatus="受注・決定">
                             <div class="kanban-header"><span class="kanban-dot" style="background:#10B981"></span><h4>受注・決定</h4><span class="kanban-count" id="scount-ordered">0</span></div>
                             <div class="kanban-cards" id="scards-ordered"></div>
@@ -566,6 +570,7 @@
                             <option value="代理店">📢 代理店</option>
                             <option value="キャスティング会社">👥 キャスティング会社</option>
                             <option value="クライアント直">🏢 クライアント直</option>
+                            <option value="レーベル">🎵 レーベル</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -607,6 +612,7 @@
                             <option value="コンタクト中">コンタクト中</option>
                             <option value="面談済">面談済</option>
                             <option value="案件検討中">案件検討中</option>
+                            <option value="WS講師依頼済">WS講師依頼済</option>
                             <option value="受注・決定">受注・決定</option>
                             <option value="休眠">休眠</option>
                         </select>
@@ -615,6 +621,7 @@
                         <label for="sf-rating">確度/感触</label>
                         <select id="sf-rating">
                             <option value="">選択...</option>
+                            <option value="S">🏆 S (受注決定/実績)</option>
                             <option value="A">⭐ A (感触大・受注目前)</option>
                             <option value="B">👍 B (感触あり・継続提案)</option>
                             <option value="C">💬 C (コンタクトあり・見込み薄)</option>
