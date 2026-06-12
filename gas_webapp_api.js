@@ -107,7 +107,7 @@ function doPost(e) {
 // ============================================================
 const SALES_SPREADSHEET_ID = '107oRwGTZM7-_OKOwjgw_efgXYDQJTarm6Da1SsJjVOg';
 const SALES_SHEET_NAME = '2025年7月~2026年6月';
-const MANAGED_TALENTS = ['谷口彩菜','寺崎ひな','小久保宏紀','島田和奏','中塚智','太田陽菜','吉富千桜','工藤遥'];
+const MANAGED_TALENTS = ['谷口彩菜','寺崎ひな','小久保宏紀','島田和奏','中塚智','太田陽菜','相馬寿樹'];
 
 // タレント別カレンダーID
 const TALENT_CALENDARS = {
@@ -117,7 +117,7 @@ const TALENT_CALENDARS = {
   '島田和奏': 'wakana.shimada@gate-agency.com',
   '中塚智': 'satoshi.nakatsuka@gate-agency.com',
   '太田陽菜': 'hina.ota@gate-agency.com',
-  '吉富千桜': 'chisa.yoshitomi@gate-agency.com'
+  '相馬寿樹': 'toshiki.soma@gate-agency.com'
 };
 
 function doGet(e) {
@@ -160,7 +160,7 @@ function fixValidation() {
     const talentRange = sheet.getRange('B2:B199');
     talentRange.clearDataValidations();
     const talentRule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(['谷口彩菜', '寺崎ひな', '小久保宏紀', '島田和奏', '中塚智', '太田陽菜', '吉富千桜', '工藤遥'], true)
+      .requireValueInList(['谷口彩菜', '寺崎ひな', '小久保宏紀', '島田和奏', '中塚智', '太田陽菜', '相馬寿樹'], true)
       .setAllowInvalid(true)
       .setHelpText('タレントを選択してください')
       .build();
