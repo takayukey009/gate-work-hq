@@ -670,6 +670,11 @@ function showSection(section) {
   // Close mobile sidebar
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebarOverlay').classList.remove('show');
+
+  // URLのハッシュを同期する
+  if (location.hash !== '#' + section) {
+    location.hash = section;
+  }
 }
 
 // ===== Init =====
@@ -681,8 +686,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Nav
   document.querySelectorAll('.nav-item').forEach(n => {
-    n.addEventListener('click', e => { e.preventDefault(); showSection(n.dataset.section); });
+    n.addEventListener('click', e => {
+      e.preventDefault();
+      location.hash = n.dataset.section;
+    });
   });
+
+  // ハッシュルーティング監視
+  window.addEventListener('hashchange', () => {
+    const section = location.hash.replace('#', '') || 'dashboard';
+    const validSections = ['dashboard', 'kanban', 'works', 'list', 'calendar', 'stats', 'sales_attack'];
+    if (validSections.includes(section)) {
+      showSection(section);
+    }
+  });
+
+  // 初回ロード時のルーティング
+  const initSection = location.hash.replace('#', '') || 'dashboard';
+  const validSections = ['dashboard', 'kanban', 'works', 'list', 'calendar', 'stats', 'sales_attack'];
+  if (validSections.includes(initSection)) {
+    showSection(initSection);
+  }
 
   // Mobile menu
   document.getElementById('mobileMenuBtn').addEventListener('click', () => {
