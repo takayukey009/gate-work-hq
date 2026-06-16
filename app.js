@@ -9,8 +9,8 @@ const TALENT_ICONS = {
   '谷口彩菜':'🌸','寺崎ひな':'⭐','小久保宏紀':'🎭',
   '島田和奏':'🌟','中塚智':'🎬','太田陽菜':'🌻','相馬寿樹':'🕺'
 };
-const STATUS_ORDER = ['情報収集','応募準備','書類結果待ち','オーディション日調整中','結果待ち','受注','完了'];
-const STATUS_MAP = {info:'情報収集',prep:'応募準備',sent:'書類結果待ち',done:'オーディション日調整中',wait:'結果待ち',order:'受注',complete:'完了'};
+const STATUS_ORDER = ['情報収集','応募準備','書類結果待ち','2次以降AD','結果待ち','受注','完了'];
+const STATUS_MAP = {info:'情報収集',prep:'応募準備',sent:'書類結果待ち',done:'2次以降AD',wait:'結果待ち',order:'受注',complete:'完了'};
 const GENRE_ICONS = {'映画':'🎬','ドラマ':'📺','舞台':'🎭','CM':'📢','MV':'🎵','Web':'🌐','広告':'📸','ショートドラマ':'📱','バラエティ':'🎪'};
 const TYPE_ICONS = {'オーディション':'🎤','オファー':'📩','レギュラー':'📺','イベント':'🎪','撮影':'📸','その他':'📋','営業':'💼'};
 const TYPE_COLORS = {'オーディション':'#e2000f','オファー':'#10B981','レギュラー':'#3B82F6','イベント':'#F59E0B','撮影':'#8B5CF6','その他':'#6B7280','営業':'#10B981'};
@@ -307,7 +307,7 @@ function renderStats() {
   const active = data.filter(d => d['ステータス'] !== '完了');
   const deadlineSoon = data.filter(d => { const du = daysUntil(d['締切日']); return du >= 0 && du <= 7; });
   const passed = data.filter(d => d['結果'] === '合格');
-  const managerAction = data.filter(d => ['応募準備','書類結果待ち','オーディション日調整中','結果待ち'].includes(d['ステータス']) && !(d['結果'] || '').startsWith('不合格'));
+  const managerAction = data.filter(d => ['応募準備','書類結果待ち','2次以降AD','結果待ち'].includes(d['ステータス']) && !(d['結果'] || '').startsWith('不合格'));
   document.getElementById('statsGrid').innerHTML = [
     statCard('📋', active.length, '進行中', ''),
     statCard('⏰', deadlineSoon.length, '今週の締切', ''),
@@ -321,7 +321,7 @@ function statCard(icon, val, label, cls) {
 
 // ===== Action Panel =====
 function renderActionPanel() {
-  const data = getFiltered().filter(d => ['応募準備','書類結果待ち','オーディション日調整中','結果待ち'].includes(d['ステータス']) && !(d['結果'] || '').startsWith('不合格'));
+  const data = getFiltered().filter(d => ['応募準備','書類結果待ち','2次以降AD','結果待ち'].includes(d['ステータス']) && !(d['結果'] || '').startsWith('不合格'));
   const panel = document.getElementById('actionPanel');
   document.getElementById('actionCount').textContent = data.length;
   const list = document.getElementById('actionList');
@@ -467,11 +467,11 @@ function renderKanban() {
     const r = d['結果'];
     if ((r || '').startsWith('不合格')) { buckets.complete.push(d); return; }
     if (s === '受注') { buckets.order.push(d); return; }
-    if (r === '合格') { buckets.complete.push(d); return; }
+    if (r === '合格') { buckets.order.push(d); return; }
     if (s === '情報収集') buckets.info.push(d);
     else if (s === '応募準備') buckets.prep.push(d);
     else if (s === '書類結果待ち') buckets.sent.push(d);
-    else if (s === 'オーディション日調整中') buckets.done.push(d);
+    else if (s === '2次以降AD') buckets.done.push(d);
     else if (s === '結果待ち') buckets.wait.push(d);
     else if (s === '完了') buckets.complete.push(d);
     else buckets.info.push(d);
@@ -512,7 +512,7 @@ function renderList() {
 
   const el = document.getElementById('listBody');
   el.innerHTML = data.map(d => {
-    const sCls = d['ステータス']==='情報収集'?'status-info':d['ステータス']==='応募準備'?'status-prep':d['ステータス']==='書類結果待ち'?'status-sent':d['ステータス']==='オーディション日調整中'?'status-auditioned':d['ステータス']==='受注'?'status-order':'status-completed';
+    const sCls = d['ステータス']==='情報収集'?'status-info':d['ステータス']==='応募準備'?'status-prep':d['ステータス']==='書類結果待ち'?'status-sent':d['ステータス']==='2次以降AD'?'status-auditioned':d['ステータス']==='受注'?'status-order':'status-completed';
     const rCls = d['結果']==='合格'?'result-pass':(d['結果']||'').startsWith('不合格')?'result-fail':d['結果']==='結果待ち'?'result-waiting':'';
     const ownerCls = d['対応者']==='マネージャー'?'owner-manager':'';
     const fileLink = d['資料リンク'] ? `<a href="${d['資料リンク']}" target="_blank" style="font-size:.7rem;color:var(--accent)">📎</a>` : '';
@@ -1096,7 +1096,7 @@ function renderWorks() {
   el.innerHTML = data.map(d => {
     const type = d['案件種別'] || 'オーディション';
     const typeColor = TYPE_COLORS[type] || '#888';
-    const sCls = d['ステータス']==='情報収集'?'status-info':d['ステータス']==='応募準備'?'status-prep':d['ステータス']==='書類結果待ち'?'status-sent':d['ステータス']==='オーディション日調整中'?'status-auditioned':d['ステータス']==='受注'?'status-order':'status-completed';
+    const sCls = d['ステータス']==='情報収集'?'status-info':d['ステータス']==='応募準備'?'status-prep':d['ステータス']==='書類結果待ち'?'status-sent':d['ステータス']==='2次以降AD'?'status-auditioned':d['ステータス']==='受注'?'status-order':'status-completed';
     const dateStr = d['オーディション日'] ? fmtDate(d['オーディション日']) : (d['締切日'] ? '〆'+fmtDate(d['締切日']) : '-');
     return `<tr>
       <td><span class="type-badge" style="background:${typeColor}">${TYPE_ICONS[type]||''} ${type}</span></td>
@@ -1206,7 +1206,7 @@ function renderSalesAttackToDo() {
   const countEl = document.getElementById('salesActionCount');
   if (!el) return;
   
-  const data = getFilteredSalesAttack().filter(d => d['次回アクション予定日'] && d['アタックステータス'] !== '受注・決定' && d['アタックステータス'] !== '休眠');
+  const data = getFilteredSalesAttack().filter(d => d['次回アクション予定日']);
   
   // 日付昇順でソート
   data.sort((a, b) => {

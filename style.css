@@ -862,3 +862,14 @@ body { font-family: var(--font); background: var(--bg-alt); color: var(--text); 
     -webkit-overflow-scrolling: touch;
   }
 }
+
+/* 完了カラム全体をグレーアウトし、ホバーで少し明瞭にする */
+.kanban-column[data-status="完了"] {
+  opacity: 0.6;
+  filter: grayscale(0.8);
+  transition: opacity var(--transition), filter var(--transition);
+}
+.kanban-column[data-status="完了"]:hover {
+  opacity: 0.95;
+  filter: grayscale(0.1);
+}
