@@ -26,7 +26,7 @@ let currentSection = 'dashboard';
 let calYear, calMonth;
 
 // ===== Data Fetch =====
-async function fetchWithTimeout(url, options = {}, timeout = 5000) {
+async function fetchWithTimeout(url, options = {}, timeout = 5000, responseType = 'json') {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
   try {
@@ -34,8 +34,12 @@ async function fetchWithTimeout(url, options = {}, timeout = 5000) {
       ...options,
       signal: controller.signal
     });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = responseType === 'text' ? await response.text() : await response.json();
     clearTimeout(id);
-    return response;
+    return data;
   } catch (error) {
     clearTimeout(id);
     throw error;
@@ -50,8 +54,7 @@ async function fetchSheetData(sheet) {
   }
   // Google Visualization APIの型の制約（日付列にあるテキストが削除される問題）を回避するため、CSVで取得
   const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}&_=${Date.now()}`;
-  const res = await fetchWithTimeout(url, {}, 5000);
-  const text = await res.text();
+  const text = await fetchWithTimeout(url, {}, 5000, 'text');
   return parseCSV(text);
 }
 
@@ -134,8 +137,7 @@ async function loadData() {
     }
     try {
       if (GAS_WEBAPP_URL) {
-        const res = await fetchWithTimeout(GAS_WEBAPP_URL + '?action=news', {}, 5000);
-        const json = await res.json();
+        const json = await fetchWithTimeout(GAS_WEBAPP_URL + '?action=news', {}, 5000);
         if (json.success && json.data) {
           allNewsData = json.data;
         } else {
@@ -149,13 +151,20 @@ async function loadData() {
       allNewsData = [];
     }
     renderAll();
-    document.getElementById('loadingOverlay').classList.add('hidden');
   } catch (e) {
     console.warn('スプレッドシート読み込み失敗。フォールバックデータを使用:', e.message);
     allData = FALLBACK_DATA;
     allSalesAttackData = [];
-    renderAll();
-    document.getElementById('loadingOverlay').classList.add('hidden');
+    try {
+      renderAll();
+    } catch (renderErr) {
+      console.error('フォールバックデータでの描画に失敗しました:', renderErr.message);
+    }
+  } finally {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+      overlay.classList.add('hidden');
+    }
   }
   // 売上データを非同期で取得（ダッシュボード表示後）
   loadSalesData();
@@ -170,9 +179,7 @@ async function loadCalendarData() {
     const start = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
     const end = new Date(now.getFullYear(), now.getMonth() + 2, 0).toISOString();
     const url = `${GAS_WEBAPP_URL}?action=calendar&start=${start}&end=${end}`;
-    const res = await fetchWithTimeout(url, { redirect: 'follow', mode: 'cors' }, 5000);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
+    const json = await fetchWithTimeout(url, { redirect: 'follow', mode: 'cors' }, 5000);
     if (json.success && json.events) {
       calendarEvents = json.events;
       console.log(`カレンダー: ${calendarEvents.length}件取得`);
@@ -245,8 +252,7 @@ async function loadSalesData() {
     return;
   }
   try {
-    const res = await fetchWithTimeout(GAS_WEBAPP_URL + '?action=sales', {}, 5000);
-    const json = await res.json();
+    const json = await fetchWithTimeout(GAS_WEBAPP_URL + '?action=sales', {}, 5000);
     if (json.success && json.data) {
       renderSalesCard(json.data);
     } else {
@@ -838,8 +844,7 @@ async function loadDriveFiles() {
   if (!el) return;
   el.innerHTML = '<div class="drive-loading">📂 読み込み中...</div>';
   try {
-    const res  = await fetchWithTimeout(GAS_WEBAPP_URL + '?action=folder_files', {}, 5000);
-    const json = await res.json();
+    const json = await fetchWithTimeout(GAS_WEBAPP_URL + '?action=folder_files', {}, 5000);
     if (json.success && json.files) {
       driveFilesCache = json.files;
       renderDriveFiles(json.files);

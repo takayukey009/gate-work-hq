@@ -190,7 +190,7 @@ body { font-family: var(--font); background: var(--bg-alt); color: var(--text); 
 .talent-stat-lbl { font-size: .6rem; color: var(--text-muted); }
 
 /* Kanban */
-.kanban-board { display: grid; grid-template-columns: repeat(8, minmax(160px, 1fr)); gap: 12px; min-height: 60vh; overflow-x: auto; width: 100%; padding-bottom: 8px; }
+.kanban-board { display: grid; grid-template-columns: repeat(8, minmax(160px, 1fr)); gap: 12px; min-height: 60vh; overflow-x: auto; width: 100%; min-width: 0; max-width: 100%; padding-bottom: 8px; }
 .kanban-column { background: var(--bg-alt); border-radius: var(--radius-lg); padding: 14px; }
 .kanban-header { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
 .kanban-header h4 { font-size: .8rem; font-weight: 700; flex: 1; }
