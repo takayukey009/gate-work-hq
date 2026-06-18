@@ -102,16 +102,94 @@
     z-index: 200 !important;
   }
 
-  /* テーブル（リスト表示・仕事一覧）のスマホ最適化 */
-  .list-table th, .list-table td {
-    padding: 8px 6px !important;
-    font-size: 0.78rem !important; /* 文字を少し小さくして視認性アップ */
+  /* 次回営業ToDoカードを横幅いっぱいにして縦に並べる（横へのはみ出し防止） */
+  .sales-todo-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  .sales-todo-card {
+    min-width: 100% !important;
+  }
+
+  /* テーブル表示のモバイル最適化 (カード型レイアウトに変換) */
+  /* 対象: listTable, worksTable, salesTable */
+  .list-table, 
+  .list-table thead, 
+  .list-table tbody, 
+  .list-table tr, 
+  .list-table td {
+    display: block !important;
+    width: 100% !important;
   }
   
-  /* 案件名などの長文セルが縦に伸びすぎないよう折り返しルールを設定 */
+  /* ヘッダーはスマホでは非表示 */
+  .list-table thead {
+    display: none !important;
+  }
+  
+  /* 各行をカードとしてデザイン */
+  .list-table tr {
+    margin-bottom: 16px !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-lg) !important;
+    background: var(--bg-card) !important;
+    padding: 12px 16px !important;
+    box-shadow: var(--shadow) !important;
+    position: relative !important;
+  }
+  
+  /* 各セルをブロック配置にし、左側に項目名のための十分な余白を設定 */
   .list-table td {
-    max-width: 140px !important;
-    word-wrap: break-word !important;
+    border-bottom: 1px dashed var(--border) !important;
+    padding: 8px 12px 8px 115px !important; 
+    position: relative !important;
+    text-align: left !important; 
+    font-size: 0.85rem !important;
+    min-height: 38px !important;
+    word-break: break-all !important;
     white-space: normal !important;
+    box-sizing: border-box !important;
+  }
+  
+  .list-table td:last-child {
+    border-bottom: none !important;
+  }
+  
+  /* data-label 属性から項目名を絶対配置で左側に動的生成 */
+  .list-table td::before {
+    content: attr(data-label) !important;
+    position: absolute !important;
+    left: 12px !important;
+    top: 8px !important;
+    width: 90px !important;
+    font-weight: 700 !important;
+    color: var(--text-secondary) !important;
+    text-align: left !important;
+    white-space: nowrap !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* セル内の子要素（バッジなど）を適切にインラインブロック化 */
+  .list-table td > * {
+    display: inline-flex !important;
+    vertical-align: middle !important;
+    text-align: left !important;
+  }
+
+  /* 備考などの長文セルは、項目名を上部に配置し、値を下部に全幅で表示して視認性を高める */
+  .list-table td[data-label="備考"],
+  .list-table td[data-label="次回ToDo"] {
+    padding-left: 12px !important; /* 左余白を解除 */
+    text-align: left !important;
+    min-height: auto !important;
+    margin-top: 4px !important;
+  }
+  .list-table td[data-label="備考"]::before,
+  .list-table td[data-label="次回ToDo"]::before {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    margin-bottom: 6px !important;
   }
 }

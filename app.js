@@ -26,6 +26,22 @@ let currentSection = 'dashboard';
 let calYear, calMonth;
 
 // ===== Data Fetch =====
+async function fetchWithTimeout(url, options = {}, timeout = 5000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
+}
+
 async function fetchSheetData(sheet) {
   // 匿名アクセス時のシート切り替えバグ（gviz/tqでsheetパラメータが非ログイン時に効かない問題）を回避するため、gidを使用
   let gid = '0';
@@ -34,7 +50,7 @@ async function fetchSheetData(sheet) {
   }
   // Google Visualization APIの型の制約（日付列にあるテキストが削除される問題）を回避するため、CSVで取得
   const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}&_=${Date.now()}`;
-  const res = await fetch(url);
+  const res = await fetchWithTimeout(url, {}, 5000);
   const text = await res.text();
   return parseCSV(text);
 }
@@ -118,7 +134,7 @@ async function loadData() {
     }
     try {
       if (GAS_WEBAPP_URL) {
-        const res = await fetch(GAS_WEBAPP_URL + '?action=news');
+        const res = await fetchWithTimeout(GAS_WEBAPP_URL + '?action=news', {}, 5000);
         const json = await res.json();
         if (json.success && json.data) {
           allNewsData = json.data;
@@ -154,7 +170,7 @@ async function loadCalendarData() {
     const start = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
     const end = new Date(now.getFullYear(), now.getMonth() + 2, 0).toISOString();
     const url = `${GAS_WEBAPP_URL}?action=calendar&start=${start}&end=${end}`;
-    const res = await fetch(url, { redirect: 'follow', mode: 'cors' });
+    const res = await fetchWithTimeout(url, { redirect: 'follow', mode: 'cors' }, 5000);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     if (json.success && json.events) {
@@ -229,7 +245,7 @@ async function loadSalesData() {
     return;
   }
   try {
-    const res = await fetch(GAS_WEBAPP_URL + '?action=sales');
+    const res = await fetchWithTimeout(GAS_WEBAPP_URL + '?action=sales', {}, 5000);
     const json = await res.json();
     if (json.success && json.data) {
       renderSalesCard(json.data);
@@ -516,7 +532,7 @@ function renderList() {
     const rCls = d['結果']==='合格'?'result-pass':(d['結果']||'').startsWith('不合格')?'result-fail':d['結果']==='結果待ち'?'result-waiting':'';
     const ownerCls = d['対応者']==='マネージャー'?'owner-manager':'';
     const fileLink = d['資料リンク'] ? `<a href="${d['資料リンク']}" target="_blank" style="font-size:.7rem;color:var(--accent)">📎</a>` : '';
-    return `<tr><td><span class="talent-badge-sm" style="background:${talentColor(d['タレント名'])}">${d['タレント名']}</span></td><td>${d['オーディション名']} ${fileLink}</td><td>${GENRE_ICONS[d['ジャンル']]||''} ${d['ジャンル']}</td><td>${fmtDate(d['締切日'])}</td><td><span class="status-badge ${sCls}">${d['ステータス']}</span></td><td class="${ownerCls}">${d['対応者']}</td><td>${rCls?`<span class="kanban-card-result ${rCls}">${d['結果']}</span>`:d['結果']||'-'}</td><td style="font-size:.75rem;color:var(--text-muted)">${d['アクション']||'-'}</td></tr>`;
+    return `<tr><td data-label="タレント"><span class="talent-badge-sm" style="background:${talentColor(d['タレント名'])}">${d['タレント名']}</span></td><td data-label="案件名">${d['オーディション名']} ${fileLink}</td><td data-label="ジャンル">${GENRE_ICONS[d['ジャンル']]||''} ${d['ジャンル']}</td><td data-label="締切">${fmtDate(d['締切日'])}</td><td data-label="ステータス"><span class="status-badge ${sCls}">${d['ステータス']}</span></td><td data-label="対応者" class="${ownerCls}">${d['対応者']}</td><td data-label="結果">${rCls?`<span class="kanban-card-result ${rCls}">${d['結果']}</span>`:d['結果']||'-'}</td><td data-label="アクション" style="font-size:.75rem;color:var(--text-muted)">${d['アクション']||'-'}</td></tr>`;
   }).join('') || '<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📭</div><p>該当なし</p></div></td></tr>';
 }
 
@@ -610,7 +626,7 @@ async function loadCalendarDataForMonth() {
       return d.getMonth() === calMonth && d.getFullYear() === calYear;
     });
     if (hasData) return;
-    const res = await fetch(`${GAS_WEBAPP_URL}?action=calendar&start=${start}&end=${end}`);
+    const res = await fetchWithTimeout(`${GAS_WEBAPP_URL}?action=calendar&start=${start}&end=${end}`, {}, 5000);
     const json = await res.json();
     if (json.success && json.events) {
       calendarEvents = [...calendarEvents, ...json.events];
@@ -822,7 +838,7 @@ async function loadDriveFiles() {
   if (!el) return;
   el.innerHTML = '<div class="drive-loading">📂 読み込み中...</div>';
   try {
-    const res  = await fetch(GAS_WEBAPP_URL + '?action=folder_files');
+    const res  = await fetchWithTimeout(GAS_WEBAPP_URL + '?action=folder_files', {}, 5000);
     const json = await res.json();
     if (json.success && json.files) {
       driveFilesCache = json.files;
@@ -1061,6 +1077,7 @@ let worksSearch = '';
 
 function renderWorks() {
   let data = getFiltered();
+  console.log("DEBUG_WORKS_DATA:", JSON.stringify(data.slice(0, 3)));
 
   // Type filter
   if (worksFilter !== 'all') {
@@ -1099,14 +1116,14 @@ function renderWorks() {
     const sCls = d['ステータス']==='情報収集'?'status-info':d['ステータス']==='応募準備'?'status-prep':d['ステータス']==='書類結果待ち'?'status-sent':d['ステータス']==='2次以降AD'?'status-auditioned':d['ステータス']==='受注'?'status-order':'status-completed';
     const dateStr = d['オーディション日'] ? fmtDate(d['オーディション日']) : (d['締切日'] ? '〆'+fmtDate(d['締切日']) : '-');
     return `<tr>
-      <td><span class="type-badge" style="background:${typeColor}">${TYPE_ICONS[type]||''} ${type}</span></td>
-      <td><span class="talent-badge-sm" style="background:${talentColor(d['タレント名'])}">${d['タレント名']}</span></td>
-      <td>${d['オーディション名']}</td>
-      <td>${GENRE_ICONS[d['ジャンル']]||''} ${d['ジャンル']}</td>
-      <td>${dateStr}</td>
-      <td><span class="status-badge ${sCls}">${d['ステータス']}</span></td>
-      <td>${d['対応者']}</td>
-      <td style="font-size:.75rem;color:var(--text-muted)">${d['備考']||'-'}</td>
+      <td data-label="種別"><span class="type-badge" style="background:${typeColor}">${TYPE_ICONS[type]||''} ${type}</span></td>
+      <td data-label="タレント"><span class="talent-badge-sm" style="background:${talentColor(d['タレント名'])}">${d['タレント名']}</span></td>
+      <td data-label="案件名">${d['オーディション名']}</td>
+      <td data-label="ジャンル">${GENRE_ICONS[d['ジャンル']]||''} ${d['ジャンル']}</td>
+      <td data-label="日程">${dateStr}</td>
+      <td data-label="ステータス"><span class="status-badge ${sCls}">${d['ステータス']}</span></td>
+      <td data-label="対応者">${d['対応者']}</td>
+      <td data-label="備考" style="font-size:.75rem;color:var(--text-muted)">${d['備考']||'-'}</td>
     </tr>`;
   }).join('') || '<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📭</div><p>該当する案件はありません</p></div></td></tr>';
 }
@@ -1357,17 +1374,17 @@ function renderSalesAttackList() {
     }
     
     return `<tr>
-      <td style="font-weight:700;">${d['社名']}</td>
-      <td><span class="type-badge" style="background:#6B7280">${d['アプローチ先種別']}</span></td>
-      <td>${d['担当者名'] || '-'}</td>
-      <td style="font-size:.75rem;">${d['連絡先'] || '-'}</td>
-      <td>${dateStr}</td>
-      <td>${d['アプローチ方法'] || '-'}</td>
-      <td>${d['提案タレント'] ? d['提案タレント'].split(',').map(t => `<span class="talent-badge-sm" style="background:${talentColor(t.trim())};margin-right:2px;">${t.trim()}</span>`).join('') : '-'}</td>
-      <td>${rating !== '-' ? `<span class="sales-rating-badge ${ratingClass}">${rating}</span>` : '-'}</td>
-      <td><span class="status-badge status-prep">${d['アタックステータス']}</span></td>
-      <td style="font-size:.75rem;">${nextAction}</td>
-      <td style="font-size:.75rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${d['備考/メモ']}">${notesText}</td>
+      <td data-label="社名" style="font-weight:700;">${d['社名']}</td>
+      <td data-label="種別"><span class="type-badge" style="background:#6B7280">${d['アプローチ先種別']}</span></td>
+      <td data-label="担当者">${d['担当者名'] || '-'}</td>
+      <td data-label="連絡先" style="font-size:.75rem;">${d['連絡先'] || '-'}</td>
+      <td data-label="最終アプローチ">${dateStr}</td>
+      <td data-label="方法">${d['アプローチ方法'] || '-'}</td>
+      <td data-label="提案タレント">${d['提案タレント'] ? d['提案タレント'].split(',').map(t => `<span class="talent-badge-sm" style="background:${talentColor(t.trim())};margin-right:2px;">${t.trim()}</span>`).join('') : '-'}</td>
+      <td data-label="確度">${rating !== '-' ? `<span class="sales-rating-badge ${ratingClass}">${rating}</span>` : '-'}</td>
+      <td data-label="ステータス"><span class="status-badge status-prep">${d['アタックステータス']}</span></td>
+      <td data-label="次回ToDo" style="font-size:.75rem;">${nextAction}</td>
+      <td data-label="備考" style="font-size:.75rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${d['備考/メモ']}">${notesText}</td>
     </tr>`;
   }).join('') || '<tr><td colspan="11"><div class="empty-state"><div class="empty-icon">📭</div><p>営業アタックデータはありません</p></div></td></tr>';
 }
