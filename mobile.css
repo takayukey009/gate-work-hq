@@ -101,4 +101,17 @@
     box-shadow: 0 4px 16px rgba(230,0,18,.4) !important;
     z-index: 200 !important;
   }
+
+  /* テーブル（リスト表示・仕事一覧）のスマホ最適化 */
+  .list-table th, .list-table td {
+    padding: 8px 6px !important;
+    font-size: 0.78rem !important; /* 文字を少し小さくして視認性アップ */
+  }
+  
+  /* 案件名などの長文セルが縦に伸びすぎないよう折り返しルールを設定 */
+  .list-table td {
+    max-width: 140px !important;
+    word-wrap: break-word !important;
+    white-space: normal !important;
+  }
 }
