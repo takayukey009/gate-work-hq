@@ -16,7 +16,7 @@
  */
 
 const SPREADSHEET_ID = '1NBZce4Xqx7FgbXujQlaO15xd-nAZvUmAqBVGRBgIaGU';
-const SHEET_NAME = 'シート1';
+const SHEET_NAME = 'オーディション';
 const DRIVE_FOLDER_ID = '1EyDWtQ_yBsGMpsw0ZKGsImFgVHjQOAhd'; // GATE_オーディション資料フォルダ
 const NANDEMO_FOLDER_ID = '1eN0gfw6f1DjFvdVoSYPrxMKxQd4t1of2'; // 何でもフォルダ
 
@@ -26,8 +26,86 @@ const NANDEMO_FOLDER_ID = '1eN0gfw6f1DjFvdVoSYPrxMKxQd4t1of2'; // 何でもフ�
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
+
+    // カレンダー操作の判定を最初に行う（スプレッドシート操作でのエラー回避）
+    if (data.action === 'create_calendar_event' || data.action === 'get_calendar_free_busy' || data.action === 'create_allday_event') {
+      let result;
+      if (data.action === 'create_calendar_event') {
+        result = createCalendarEvent(data.calendarId, data.summary, data.startTime, data.endTime, data.description);
+      } else if (data.action === 'get_calendar_free_busy') {
+        result = getCalendarFreeBusy(data.calendarId, data.start, data.end);
+      } else if (data.action === 'create_allday_event') {
+        result = createAllDayEvent(data.calendarId, data.summary, data.date);
+      }
+      return ContentService
+        .createTextOutput(JSON.stringify(result))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const today = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd');
+    
+    // タレントアンケート回答の追加・上書き処理
+    if (data.sheetType === 'talent_survey') {
+      let sheet = ss.getSheetByName('talent_survey');
+      if (!sheet) {
+        sheet = ss.insertSheet('talent_survey');
+        sheet.appendRow(['ID', 'タレント名', '更新日', 'バイブル映画', 'バイブルドラマ', '最近の作品', '目標俳優', '演じたい役柄', '偏愛', 'RAWデータ']);
+        sheet.getRange(1, 1, 1, 10).setFontWeight('bold');
+        sheet.setFrozenRows(1);
+      }
+      
+      const lastRow = sheet.getLastRow();
+      const nextId = lastRow > 1 ? Number(sheet.getRange(lastRow, 1).getValue()) + 1 : 1;
+      
+      const surveyData = data.data || {};
+      const bibleMovie = surveyData.bibleMovie || '';
+      const bibleDrama = surveyData.bibleDrama || '';
+      const recentTitle = surveyData.recentTitle || '';
+      const targetActor = surveyData.targetActor || '';
+      
+      const desiredRolesList = surveyData.desiredRoles || [];
+      const desiredRoles = desiredRolesList.join(', ') + (surveyData.desiredRolesOther ? ' (' + surveyData.desiredRolesOther + ')' : '');
+      
+      const loves = [surveyData.love1, surveyData.love2, surveyData.love3].filter(Boolean).join(', ');
+      
+      // 同一タレントの既存の回答があるか確認し、あれば上書き、なければ新規追加
+      let rowIndex = -1;
+      if (lastRow > 1) {
+        const range = sheet.getRange(2, 2, lastRow - 1, 1);
+        const values = range.getValues();
+        for (let i = 0; i < values.length; i++) {
+          if (values[i][0] === data.talentName) {
+            rowIndex = i + 2;
+            break;
+          }
+        }
+      }
+      
+      const rowId = rowIndex > 0 ? sheet.getRange(rowIndex, 1).getValue() : nextId;
+      const rowData = [
+        rowId,
+        data.talentName,
+        today,
+        bibleMovie,
+        bibleDrama,
+        recentTitle,
+        targetActor,
+        desiredRoles,
+        loves,
+        JSON.stringify(surveyData)
+      ];
+      
+      if (rowIndex > 0) {
+        sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
+      } else {
+        sheet.appendRow(rowData);
+      }
+      
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: true, message: 'Survey saved successfully' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
     
     // 営業アタックシートへの追加処理
     if (data.sheetType === 'sales_attack') {
@@ -123,6 +201,14 @@ const TALENT_CALENDARS = {
 function doGet(e) {
   const action = (e && e.parameter && e.parameter.action) || '';
   
+  // パラメータが無い（＝タレントがただURLを開いた）場合は入力フォームを表示する
+  if (!action) {
+    return HtmlService.createHtmlOutputFromFile('talent_survey')
+      .setTitle("ACTOR'S ROOT - 俳優ルーツ・ヒアリングシート")
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  }
+  
   if (action === 'sales') {
     return getSalesData();
   }
@@ -143,6 +229,10 @@ function doGet(e) {
     return getNewsData();
   }
   
+  if (action === 'survey') {
+    return getSurveyData();
+  }
+  
   return ContentService
     .createTextOutput(JSON.stringify({ status: 'ok', message: 'GATE Audition API is running' }))
     .setMimeType(ContentService.MimeType.JSON);
@@ -156,6 +246,14 @@ function fixValidation() {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SHEET_NAME);
     
+    // ヘッダー行を正しい名称に復元（A列〜Q列）
+    const correctHeaders = [
+      'ID', 'タレント名', '案件種別', 'オーディション名', 'ジャンル', 
+      '締切日', 'オーディション日', 'ステータス', '対応者', 'アクション', 
+      '結果', '備考', '登録日', '更新日', '資料リンク', '結果発表', '公開日'
+    ];
+    sheet.getRange(1, 1, 1, correctHeaders.length).setValues([correctHeaders]);
+
     // B列（タレント名）の入力規則を設定
     const talentRange = sheet.getRange('B2:B199');
     talentRange.clearDataValidations();
@@ -718,7 +816,7 @@ function processBusinessCards() {
 
 function callGeminiVision(base64Image, mimeType) {
   const apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
-  const url = `https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
   
   const payload = {
     contents: [
@@ -770,4 +868,113 @@ function callGeminiVision(base64Image, mimeType) {
   let jsonText = result.candidates[0].content.parts[0].text;
   jsonText = jsonText.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
   return JSON.parse(jsonText);
+}
+
+// ============================================================
+// タレントアンケート回答データ取得
+// ============================================================
+function getSurveyData() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('talent_survey');
+    if (!sheet) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: true, data: [] }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: true, data: [] }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    const values = sheet.getRange(2, 1, lastRow - 1, 10).getValues();
+    const result = values.map(row => {
+      let dateStr = '';
+      if (row[2] instanceof Date) {
+        dateStr = Utilities.formatDate(row[2], 'Asia/Tokyo', 'yyyy/MM/dd');
+      } else {
+        dateStr = String(row[2]);
+      }
+      return {
+        id: row[0],
+        talentName: String(row[1]),
+        updateDate: dateStr,
+        bibleMovie: String(row[3]),
+        bibleDrama: String(row[4]),
+        recentTitle: String(row[5]),
+        targetActor: String(row[6]),
+        desiredRoles: String(row[7]),
+        loves: String(row[8]),
+        rawData: String(row[9])
+      };
+    });
+    
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: true, data: result }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: false, error: error.message }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// ============================================================
+// カレンダー操作ユーティリティ（不足分の追加）
+// ============================================================
+
+/**
+ * カレンダーにイベントを作成
+ */
+function createCalendarEvent(calendarId, summary, startTime, endTime, description) {
+  try {
+    const cal = CalendarApp.getCalendarById(calendarId);
+    if (!cal) return { success: false, error: 'カレンダーが見つかりません: ' + calendarId };
+    
+    const event = cal.createEvent(summary, new Date(startTime), new Date(endTime), {
+      description: description
+    });
+    return { success: true, eventId: event.getId() };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * カレンダーに終日イベントを作成
+ */
+function createAllDayEvent(calendarId, summary, date) {
+  try {
+    const cal = CalendarApp.getCalendarById(calendarId);
+    if (!cal) return { success: false, error: 'カレンダーが見つかりません: ' + calendarId };
+    
+    const event = cal.createAllDayEvent(summary, new Date(date));
+    return { success: true, eventId: event.getId() };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * カレンダーの空き時間（予定あり時間）を取得
+ */
+function getCalendarFreeBusy(calendarId, start, end) {
+  try {
+    const cal = CalendarApp.getCalendarById(calendarId);
+    if (!cal) return { success: false, error: 'カレンダーが見つかりません: ' + calendarId };
+    
+    const events = cal.getEvents(new Date(start), new Date(end));
+    const busy = events.map(ev => {
+      return {
+        start: ev.getStartTime().toISOString(),
+        end: ev.getEndTime().toISOString()
+      };
+    });
+    return { success: true, busy: busy };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
 }
