@@ -94,7 +94,16 @@ function parseCSV(text) {
   
   if (result.length < 2) return [];
   
-  const headers = result[0].map(h => h.trim());
+  const headerMap = {
+    'タレント': 'タレント名',
+    'オーディション': 'ID',
+    '対応者/結果待ち': '対応者',
+    '書類結果待ち': '対応者'
+  };
+  const headers = result[0].map(h => {
+    const trimmed = h.trim();
+    return headerMap[trimmed] || trimmed;
+  });
   const data = [];
   for (let i = 1; i < result.length; i++) {
     // 全てのカラムが空または空白文字のみの行をスキップ
@@ -198,6 +207,12 @@ function getFiltered() {
 
 function parseDate(s) {
   if (!s) return null;
+  // Handle serial dates from Google Sheets (e.g. 46157.0)
+  if (!isNaN(s) && !isNaN(parseFloat(s))) {
+    const serial = parseFloat(s);
+    // Excel/Sheets serial dates start from Dec 30, 1899
+    return new Date((serial - 25569) * 86400000);
+  }
   // Handle "Date(2026,4,20)" format from Google Sheets
   const dm = s.match(/Date\((\d+),(\d+),(\d+)\)/);
   if (dm) return new Date(+dm[1], +dm[2], +dm[3]);
@@ -241,6 +256,7 @@ function renderAll() {
   renderWorks();
   renderNews();
   renderSalesAttackAll();
+  renderSurveyList();
 }
 
 // ===== Sales Data =====
@@ -684,10 +700,13 @@ function showSection(section) {
   document.getElementById('section-'+section)?.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelector(`[data-section="${section}"]`)?.classList.add('active');
-  const titles = {dashboard:'ダッシュボード',kanban:'カンバン',works:'仕事一覧',list:'リスト（AD）',calendar:'カレンダー',stats:'統計',sales_attack:'営業アタック'};
+  const titles = {dashboard:'ダッシュボード',kanban:'カンバン',works:'仕事一覧',list:'リスト（AD）',calendar:'カレンダー',stats:'統計',sales_attack:'営業アタック',survey:'ルーツシート'};
   document.getElementById('pageTitle').textContent = titles[section] || section;
   if (section === 'sales_attack') {
     renderSalesAttackAll();
+  }
+  if (section === 'survey') {
+    loadSurveyData();
   }
   // Close mobile sidebar
   document.getElementById('sidebar').classList.remove('open');
@@ -717,7 +736,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ハッシュルーティング監視
   window.addEventListener('hashchange', () => {
     const section = location.hash.replace('#', '') || 'dashboard';
-    const validSections = ['dashboard', 'kanban', 'works', 'list', 'calendar', 'stats', 'sales_attack'];
+    const validSections = ['dashboard', 'kanban', 'works', 'list', 'calendar', 'stats', 'sales_attack', 'survey'];
     if (validSections.includes(section)) {
       showSection(section);
     }
@@ -725,7 +744,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 初回ロード時のルーティング
   const initSection = location.hash.replace('#', '') || 'dashboard';
-  const validSections = ['dashboard', 'kanban', 'works', 'list', 'calendar', 'stats', 'sales_attack'];
+  const validSections = ['dashboard', 'kanban', 'works', 'list', 'calendar', 'stats', 'sales_attack', 'survey'];
   if (validSections.includes(initSection)) {
     showSection(initSection);
   }
@@ -794,6 +813,12 @@ document.addEventListener('DOMContentLoaded', () => {
       salesFilter = btn.dataset.sfilter;
       renderSalesAttackAll();
     });
+  });
+
+  // Survey Search
+  document.getElementById('surveySearch')?.addEventListener('input', e => {
+    surveySearchQuery = e.target.value;
+    renderSurveyList();
   });
 
   // Load data
@@ -1485,4 +1510,214 @@ async function handleSalesAddSubmit(e) {
     spinner.classList.add('hidden');
   }
   return false;
+}
+
+// ===== Survey (タレントアンケート) =====
+let surveyDataCache = [];
+let surveySearchQuery = '';
+let activeSurveyData = null; // 現在モーダルで開いているデータ
+
+async function loadSurveyData() {
+  const container = document.getElementById('surveyList');
+  if (!container) return;
+  container.innerHTML = '<div class="news-loading">📊 アンケート回答を読み込み中...</div>';
+  
+  if (!GAS_WEBAPP_URL) {
+    container.innerHTML = '<div class="news-loading">⚠️ GAS WebApp URL が設定されていません。</div>';
+    return;
+  }
+  
+  try {
+    const res = await fetch(`${GAS_WEBAPP_URL}?action=survey`);
+    const json = await res.json();
+    if (json.success && json.data) {
+      surveyDataCache = json.data;
+      renderSurveyList();
+    } else {
+      throw new Error(json.error || 'データ取得失敗');
+    }
+  } catch (err) {
+    console.error("Failed to load survey data:", err);
+    container.innerHTML = `<div class="news-loading">⚠️ 読み込みエラー: ${err.message}</div>`;
+  }
+}
+
+function renderSurveyList() {
+  const container = document.getElementById('surveyList');
+  if (!container || currentSection !== 'survey') return;
+  
+  let data = surveyDataCache;
+  if (surveySearchQuery) {
+    const q = surveySearchQuery.toLowerCase();
+    data = data.filter(d => d.talentName.toLowerCase().includes(q));
+  }
+  
+  if (currentTalent !== 'all') {
+    data = data.filter(d => d.talentName === currentTalent);
+  }
+  
+  if (!data.length) {
+    container.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:.9rem;padding:40px;grid-column:1/-1">📭 回答データはありません</div>';
+    return;
+  }
+  
+  container.innerHTML = data.map(d => {
+    return `<div class="survey-card" onclick="openSurveyDetail('${d.id}')" style="cursor:pointer; background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; transition: all var(--transition); box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+      <div class="survey-card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:8px;">
+        <span class="talent-badge-sm" style="background:${talentColor(d.talentName)}">${d.talentName}</span>
+        <span class="survey-card-date" style="font-size:0.7rem; color:var(--text-muted);">${d.updateDate} 更新</span>
+      </div>
+      <div class="survey-card-body" style="font-size:0.8rem; display:flex; flex-direction:column; gap:6px; color:var(--text-secondary);">
+        <div class="survey-card-item">
+          <strong>🎬 映画:</strong> <span>${d.bibleMovie || '-'}</span>
+        </div>
+        <div class="survey-card-item">
+          <strong>📺 ドラマ:</strong> <span>${d.bibleDrama || '-'}</span>
+        </div>
+        <div class="survey-card-item">
+          <strong>🌟 最近の作品:</strong> <span>${d.recentTitle || '-'}</span>
+        </div>
+        <div class="survey-card-item">
+          <strong>👥 目標俳優:</strong> <span>${d.targetActor || '-'}</span>
+        </div>
+      </div>
+      <div class="survey-card-footer" style="margin-top:14px;">
+        <button class="btn btn-secondary btn-sm" style="width: 100%; justify-content: center; font-size:0.75rem; padding:4px 8px;">
+          <span>詳細・印刷プレビュー</span>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openSurveyDetail(id) {
+  const item = surveyDataCache.find(d => String(d.id) === String(id));
+  if (!item) return;
+  
+  let raw = {};
+  try {
+    raw = JSON.parse(item.rawData);
+  } catch (e) {
+    console.error("Failed to parse raw survey data:", e);
+  }
+  
+  activeSurveyData = { ...item, raw };
+  
+  const content = document.getElementById('surveyDetailContent');
+  if (!content) return;
+  
+  content.innerHTML = renderSurveyDetailHTML(item.talentName, item.updateDate, raw);
+  
+  document.getElementById('surveyDetailModal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSurveyDetailModal() {
+  document.getElementById('surveyDetailModal').classList.remove('show');
+  document.body.style.overflow = '';
+  activeSurveyData = null;
+}
+
+function printSurveyDetail() {
+  if (!activeSurveyData) return;
+  window.print();
+}
+
+function renderSurveyDetailHTML(talentName, updateDate, raw) {
+  const movieAspectMap = { words: 'セリフ・言葉の紡ぎ方', visual: '映像美・色彩・アングル', sound: '音楽・音響効果', acting: '役者の佇まい・肉体表現', story: '緻密なストーリー構成', atmosphere: '全体の空気感・余白の美' };
+  const dramaAspectMap = { words: 'テンポ感のある会話・セリフ', characters: 'キャラクターの愛らしさ・人間味', social: '社会的なテーマや切り込み方', ensemble: 'アンサンブル（役者陣の掛け合い）', music: '劇伴（音楽）や主題歌の連動' };
+  const recentAspectMap = { acting: '同世代や特定の役者の演技への衝撃', directing: '演出手法やカメラワークの面白さ', script: '脚本の巧みさやメッセージ性', empathy: '役柄への深い共感や自己投影', jealousy: '「自分もこの場に立ちたかった」という嫉忑' };
+  const actorAspectMap = { presence: '圧倒的な佇まい・そこにいるだけで存在感', eyes: '目の動きや「沈黙・余白」を使った内面表現', versatile: '作品によって別人になるカメレオン演技', natural: '作り物感のない、生々しくリアルな生活感', comedy: '間の取り方やユーモアのある芝居', voice: '声のトーンや発話のテンポ' };
+  const roleMap = { villain: '静かな狂気を秘めた悪役・トリックスター', lonely: '影のある孤独な主人公・アウトサイダー', moodmaker: 'コメディや会話を牽引するムードメーカー', daily: '日常を描く作品の等身大な人物', elite: '知的で冷徹なエリート・専門職', passionate: '真っ直ぐで不器用な, 熱量のある熱血漢' };
+  
+  const movieAspects = (raw.bibleMovieAspects || []).map(k => movieAspectMap[k] || k).join(', ');
+  const dramaAspects = (raw.bibleDramaAspects || []).map(k => dramaAspectMap[k] || k).join(', ');
+  const recentAspects = (raw.recentAspects || []).map(k => recentAspectMap[k] || k).join(', ');
+  const actorAspects = (raw.actorAspects || []).map(k => actorAspectMap[k] || k).join(', ');
+  const desiredRoles = (raw.desiredRoles || []).map(k => roleMap[k] || k).join(', ');
+  
+  const recentMediaMap = { movie: '映画', drama: 'ドラマ', stage: '舞台', anime: 'アニメ', other: 'その他' };
+  const recentMedia = recentMediaMap[raw.recentMedia] || raw.recentMedia || '-';
+
+  return `
+    <div style="padding: 0 20px;">
+      <!-- Header -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 25px;">
+        <div>
+          <h2 style="font-family: var(--font); font-size: 1.4rem; font-weight: 900; color: var(--accent); line-height: 1.1; margin:0 0 4px 0; letter-spacing: 2px;">ACTOR'S ROOT</h2>
+          <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; letter-spacing: 1px;">俳優ルーツ・ヒアリングシート</span>
+        </div>
+        <div style="text-align: right;">
+          <span style="font-size: 0.65rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Actor Name</span>
+          <h3 style="font-size: 1.3rem; margin: 2px 0 0 0; color: var(--text); font-weight: 800;">${talentName}</h3>
+          <span style="font-size: 0.7rem; color: var(--text-muted);">${updateDate} 送信</span>
+        </div>
+      </div>
+      
+      <!-- Section 1 -->
+      <div class="preview-section" style="margin-bottom:28px; border-left:3px solid var(--accent); padding-left:15px">
+        <h4 style="font-size: 1.05rem; color: var(--text); font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px;">01. 私のバイブル（人生の土台となった作品）</h4>
+        
+        <div style="margin-bottom: 18px;">
+          <h5 style="font-weight: 800; font-size: 0.88rem; color: var(--accent); margin-bottom:6px">🎬 映画部門: ${raw.bibleMovie || '-'}</h5>
+          <div style="font-size:0.75rem; color: var(--text-secondary); margin-bottom:6px"><strong>惹かれる要素:</strong> ${movieAspects || '-'}</div>
+          ${raw.bibleMovieAspectsOther ? `<div style="font-size:0.75rem; color: var(--text-secondary); margin-bottom:6px"><strong>その他要素:</strong> ${raw.bibleMovieAspectsOther}</div>` : ''}
+          <div style="font-size:0.85rem; white-space: pre-wrap; background: var(--bg-alt); border: 1.5px solid var(--border); padding: 12px; border-radius: 6px; color: var(--text-secondary); line-height: 1.5;">${raw.bibleMovieComment || '（未記入）'}</div>
+        </div>
+        
+        <div>
+          <h5 style="font-weight: 800; font-size: 0.88rem; color: var(--accent); margin-bottom:6px">📺 ドラマ部門: ${raw.bibleDrama || '-'}</h5>
+          <div style="font-size:0.75rem; color: var(--text-secondary); margin-bottom:6px"><strong>惹かれる要素:</strong> ${dramaAspects || '-'}</div>
+          ${raw.bibleDramaAspectsOther ? `<div style="font-size:0.75rem; color: var(--text-secondary); margin-bottom:6px"><strong>その他要素:</strong> ${raw.bibleDramaAspectsOther}</div>` : ''}
+          <div style="font-size:0.85rem; white-space: pre-wrap; background: var(--bg-alt); border: 1.5px solid var(--border); padding: 12px; border-radius: 6px; color: var(--text-secondary); line-height: 1.5;">${raw.bibleDramaComment || '（未記入）'}</div>
+        </div>
+      </div>
+      
+      <!-- Section 2 -->
+      <div class="preview-section" style="margin-bottom:28px; border-left:3px solid var(--accent); padding-left:15px">
+        <h4 style="font-size: 1.05rem; color: var(--text); font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px;">02. 最近観て、心が動いた作品</h4>
+        <h5 style="font-weight: 800; font-size: 0.88rem; color: var(--accent); margin-bottom:6px">作品名: ${raw.recentTitle || '-'} （ジャンル: ${recentMedia}）</h5>
+        <div style="font-size:0.75rem; color: var(--text-secondary); margin-bottom:6px"><strong>動かされた点:</strong> ${recentAspects || '-'}</div>
+        <div style="font-size:0.85rem; white-space: pre-wrap; background: var(--bg-alt); border: 1.5px solid var(--border); padding: 12px; border-radius: 6px; color: var(--text-secondary); line-height: 1.5;">${raw.recentComment || '（未記入）'}</div>
+      </div>
+      
+      <!-- Section 3 -->
+      <div class="preview-section" style="margin-bottom:28px; border-left:3px solid var(--accent); padding-left:15px">
+        <h4 style="font-size: 1.05rem; color: var(--text); font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px;">03. 目標とする・影響を受けた俳優</h4>
+        <h5 style="font-weight: 800; font-size: 0.88rem; color: var(--accent); margin-bottom:6px">俳優名: ${raw.targetActor || '-'}</h5>
+        <div style="font-size:0.75rem; color: var(--text-secondary); margin-bottom:6px"><strong>惹かれる要素:</strong> ${actorAspects || '-'}</div>
+        <div style="font-size:0.85rem; white-space: pre-wrap; background: var(--bg-alt); border: 1.5px solid var(--border); padding: 12px; border-radius: 6px; color: var(--text-secondary); line-height: 1.5;">${raw.actorComment || '（未記入）'}</div>
+      </div>
+      
+      <!-- Section 4 -->
+      <div class="preview-section" style="margin-bottom:28px; border-left:3px solid var(--accent); padding-left:15px">
+        <h4 style="font-size: 1.05rem; color: var(--text); font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px;">04. 今、最も演じてみたい役柄・世界観</h4>
+        <div style="font-size:0.75rem; color: var(--text-secondary); margin-bottom:6px"><strong>キャラクターの方向性:</strong> ${desiredRoles || '-'}</div>
+        ${raw.desiredRolesOther ? `<div style="font-size:0.75rem; color: var(--text-secondary); margin-bottom:6px"><strong>その他役柄:</strong> ${raw.desiredRolesOther}</div>` : ''}
+        <div style="font-size:0.85rem; white-space: pre-wrap; background: var(--bg-alt); border: 1.5px solid var(--border); padding: 12px; border-radius: 6px; color: var(--text-secondary); line-height: 1.5;">${raw.desiredComment || '（未記入）'}</div>
+      </div>
+      
+      <!-- Section 5 -->
+      <div class="preview-section" style="border-left:3px solid var(--accent); padding-left:15px">
+        <h4 style="font-size: 1.05rem; color: var(--text); font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px;">05. 私を構成する3つの「偏愛」</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+          <div style="background: var(--bg-alt); border: 1.5px solid var(--border); padding: 14px; border-radius: 6px;">
+            <div style="font-weight:800; font-size:0.75rem; color:var(--accent); margin-bottom:6px; text-transform: uppercase; letter-spacing: 0.5px;">偏愛 1</div>
+            <div style="font-weight:800; font-size:0.9rem; margin-bottom:8px; color:var(--text);">${raw.love1 || '-'}</div>
+            <div style="font-size:0.78rem; color:var(--text-secondary); white-space:pre-wrap; line-height:1.4">${raw.love1Desc || ''}</div>
+          </div>
+          <div style="background: var(--bg-alt); border: 1.5px solid var(--border); padding: 14px; border-radius: 6px;">
+            <div style="font-weight:800; font-size:0.75rem; color:var(--accent); margin-bottom:6px; text-transform: uppercase; letter-spacing: 0.5px;">偏愛 2</div>
+            <div style="font-weight:800; font-size:0.9rem; margin-bottom:8px; color:var(--text);">${raw.love2 || '-'}</div>
+            <div style="font-size:0.78rem; color:var(--text-secondary); white-space:pre-wrap; line-height:1.4">${raw.love2Desc || ''}</div>
+          </div>
+          <div style="background: var(--bg-alt); border: 1.5px solid var(--border); padding: 14px; border-radius: 6px;">
+            <div style="font-weight:800; font-size:0.75rem; color:var(--accent); margin-bottom:6px; text-transform: uppercase; letter-spacing: 0.5px;">偏愛 3</div>
+            <div style="font-weight:800; font-size:0.9rem; margin-bottom:8px; color:var(--text);">${raw.love3 || '-'}</div>
+            <div style="font-size:0.78rem; color:var(--text-secondary); white-space:pre-wrap; line-height:1.4">${raw.love3Desc || ''}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
 }
