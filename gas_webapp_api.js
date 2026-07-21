@@ -675,7 +675,7 @@ function updateStatusValidation() {
 // タレントニュース自動収集処理
 // ============================================================
 function collectNews() {
-  const talents = ['谷口彩菜', '寺崎ひな', '小久保宏紀', '島田和奏', '中塚智', '太田陽菜', '吉富千桜'];
+  const talents = ['谷口彩菜', '寺崎ひな', '小久保宏紀', '島田和奏', '中塚智', '太田陽菜'];
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   
   // 「ニュース」シートがなければ作成
@@ -1140,7 +1140,6 @@ function getTalentMasterInternal() {
       ['島田和奏', '#EDFBEF', '🌟', 'wakana.shimada@gate-agency.com', '在籍'],
       ['中塚智', '#F5F3FF', '🎬', 'satoshi.nakatsuka@gate-agency.com', '在籍'],
       ['太田陽菜', '#FFF8E1', '🌻', 'hina.ota@gate-agency.com', '在籍'],
-      ['吉富千桜', '#FFF5F5', '🍒', 'chio.yoshitomi@gate-agency.com', '在籍'],
       ['相馬寿樹', '#F3F4F6', '👤', 'toshiki.soma@gate-agency.com', '在籍']
     ];
     initialTalents.forEach(function(row) {
