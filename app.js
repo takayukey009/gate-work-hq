@@ -15,6 +15,17 @@ const GENRE_ICONS = {'映画':'🎬','ドラマ':'📺','舞台':'🎭','CM':'�
 const TYPE_ICONS = {'オーディション':'🎤','オファー':'📩','レギュラー':'📺','イベント':'🎪','撮影':'📸','その他':'📋','営業':'💼'};
 const TYPE_COLORS = {'オーディション':'#e2000f','オファー':'#10B981','レギュラー':'#3B82F6','イベント':'#F59E0B','撮影':'#8B5CF6','その他':'#6B7280','営業':'#10B981'};
 
+// ===== Security helpers =====
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 let allData = [];
 let allNewsData = [];
 let allSalesAttackData = [];
@@ -145,8 +156,8 @@ async function loadData() {
       allSalesAttackData = [];
     }
     try {
-      if (GAS_WEBAPP_URL) {
-        const json = await fetchWithTimeout(GAS_WEBAPP_URL + '?action=news', {}, 5000);
+      if (hasGasUrl()) {
+        const json = await fetchWithTimeout(withToken(GAS_WEBAPP_URL + '?action=news'), {}, 5000);
         if (json.success && json.data) {
           allNewsData = json.data;
         } else {
@@ -182,12 +193,12 @@ async function loadData() {
 }
 
 async function loadCalendarData() {
-  if (!GAS_WEBAPP_URL) return;
+  if (!hasGasUrl()) return;
   try {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
     const end = new Date(now.getFullYear(), now.getMonth() + 2, 0).toISOString();
-    const url = `${GAS_WEBAPP_URL}?action=calendar&start=${start}&end=${end}`;
+    const url = withToken(`${GAS_WEBAPP_URL}?action=calendar&start=${start}&end=${end}`);
     const json = await fetchWithTimeout(url, { redirect: 'follow', mode: 'cors' }, 5000);
     if (json.success && json.events) {
       calendarEvents = json.events;
@@ -263,12 +274,12 @@ function renderAll() {
 const MONTH_LABELS = ['7月','8月','9月','10月','11月','12月','1月','2月','3月','4月','5月','6月'];
 
 async function loadSalesData() {
-  if (!GAS_WEBAPP_URL) {
+  if (!hasGasUrl()) {
     document.getElementById('salesLoading').textContent = '⚠️ GAS WebApp URLが未設定です';
     return;
   }
   try {
-    const json = await fetchWithTimeout(GAS_WEBAPP_URL + '?action=sales', {}, 5000);
+    const json = await fetchWithTimeout(withToken(GAS_WEBAPP_URL + '?action=sales'), {}, 5000);
     if (json.success && json.data) {
       renderSalesCard(json.data);
     } else {
@@ -382,9 +393,9 @@ function renderActionPanel() {
       dateInfo = '〆 ' + fmtDate(d['締切日']);
     }
     return `<div class="action-item">
-    <span class="action-talent-badge" style="background:${talentColor(d['タレント名'])}">${d['タレント名']}</span>
-    <div class="action-info"><div class="action-title">${d['オーディション名']}</div><div class="action-desc">${d['アクション']}</div></div>
-    <span class="action-due">${dateInfo}</span>
+    <span class="action-talent-badge" style="background:${talentColor(d['タレント名'])}">${escapeHtml(d['タレント名'])}</span>
+    <div class="action-info"><div class="action-title">${escapeHtml(d['オーディション名'])}</div><div class="action-desc">${escapeHtml(d['アクション'])}</div></div>
+    <span class="action-due">${escapeHtml(dateInfo)}</span>
   </div>`;
   }).join('');
 }
@@ -398,7 +409,7 @@ function renderDeadlines() {
     const dd = parseDate(d['締切日']);
     const du = daysUntil(d['締切日']);
     const urgent = du <= 3 ? 'deadline-urgent' : '';
-    return `<div class="deadline-item"><div class="deadline-date"><span class="day ${urgent}">${dd?dd.getDate():'-'}</span><span class="month">${dd?['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][dd.getMonth()]:''}</span></div><div class="deadline-info"><div class="deadline-title">${d['オーディション名']}</div><div class="deadline-meta"><span class="talent-badge-sm" style="background:${talentColor(d['タレント名'])}">${d['タレント名']}</span> ${du<=0?'⚠️ 今日！':du+'日後'}</div></div></div>`;
+    return `<div class="deadline-item"><div class="deadline-date"><span class="day ${urgent}">${dd?dd.getDate():'-'}</span><span class="month">${dd?['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][dd.getMonth()]:''}</span></div><div class="deadline-info"><div class="deadline-title">${escapeHtml(d['オーディション名'])}</div><div class="deadline-meta"><span class="talent-badge-sm" style="background:${talentColor(d['タレント名'])}">${escapeHtml(d['タレント名'])}</span> ${du<=0?'⚠️ 今日！':du+'日後'}</div></div></div>`;
   }).join('');
 }
 
@@ -472,9 +483,9 @@ function renderRecent() {
         <span class="month">${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][dd.getMonth()]}</span>
       </div>
       <div class="deadline-info">
-        <div class="deadline-title"><span style="margin-right:4px">${ev.icon}</span>${ev.name}</div>
+        <div class="deadline-title"><span style="margin-right:4px">${ev.icon}</span>${escapeHtml(ev.name)}</div>
         <div class="deadline-meta">
-          <span class="talent-badge-sm" style="background:${talentColor(ev.talent)}">${ev.talent || ev.icon}</span>
+          <span class="talent-badge-sm" style="background:${talentColor(ev.talent)}">${escapeHtml(ev.talent || ev.icon)}</span>
           <span style="font-size:.65rem;background:${typeColor}22;color:${typeColor};padding:1px 5px;border-radius:4px;font-weight:600;margin-left:4px">${ev.label}</span>
           <span style="font-size:.65rem;color:var(--text-muted);margin-left:6px">${daysStr}</span>
         </div>
@@ -492,7 +503,7 @@ function renderTalentSummary() {
     const active = td.filter(d => d['ステータス'] !== '完了').length;
     const pass = td.filter(d => d['結果'] === '合格').length;
     const total = td.length;
-    return `<div class="talent-summary-card" style="cursor:pointer" onclick="setTalent('${t}')"><div style="position:absolute;top:0;left:0;right:0;height:3px;background:${talentColor(t)}"></div><div class="talent-summary-top"><span class="talent-icon">${talentIcon(t)}</span><span class="talent-summary-name">${t}</span></div><div class="talent-stats-row"><div class="talent-stat-item"><span class="talent-stat-num">${total}</span><span class="talent-stat-lbl">総数</span></div><div class="talent-stat-item"><span class="talent-stat-num">${active}</span><span class="talent-stat-lbl">進行中</span></div><div class="talent-stat-item"><span class="talent-stat-num">${pass}</span><span class="talent-stat-lbl">合格</span></div></div></div>`;
+    return `<div class="talent-summary-card" style="cursor:pointer" onclick="setTalent('${escapeHtml(t)}')"><div style="position:absolute;top:0;left:0;right:0;height:3px;background:${talentColor(t)}"></div><div class="talent-summary-top"><span class="talent-icon">${talentIcon(t)}</span><span class="talent-summary-name">${escapeHtml(t)}</span></div><div class="talent-stats-row"><div class="talent-stat-item"><span class="talent-stat-num">${total}</span><span class="talent-stat-lbl">総数</span></div><div class="talent-stat-item"><span class="talent-stat-num">${active}</span><span class="talent-stat-lbl">進行中</span></div><div class="talent-stat-item"><span class="talent-stat-num">${pass}</span><span class="talent-stat-lbl">合格</span></div></div></div>`;
   }).join('');
 }
 
@@ -525,12 +536,22 @@ function renderKanban() {
 
 function kanbanCard(d) {
   const resultCls = d['結果']==='合格'?'result-pass':(d['結果']||'').startsWith('不合格')?'result-fail':d['結果']==='結果待ち'?'result-waiting':'';
-  const fileLink = d['資料リンク'] ? `<a href="${d['資料リンク']}" target="_blank" style="font-size:.6rem;color:var(--accent);text-decoration:none">📎 資料</a>` : '';
+  const fileLink = d['資料リンク'] ? `<a href="${escapeHtml(d['資料リンク'])}" target="_blank" style="font-size:.6rem;color:var(--accent);text-decoration:none">📎 資料</a>` : '';
   const typeVal = d['案件種別'] || 'オーディション';
   const typeColor = TYPE_COLORS[typeVal] || '#6B7280';
   const typeIcon = TYPE_ICONS[typeVal] || '📋';
-  const typeBadge = `<span style="display:inline-block;font-size:.6rem;font-weight:700;color:#fff;background:${typeColor};padding:1px 6px;border-radius:3px;margin-bottom:4px">${typeIcon} ${typeVal}</span>`;
-  return `<div class="kanban-card" style="${typeVal !== 'オーディション' ? 'border-left:3px solid '+typeColor : ''}">${typeBadge}<div class="kanban-card-talent"><span class="talent-badge-sm" style="background:${talentColor(d['タレント名'])}">${d['タレント名']}</span></div><div class="kanban-card-title">${d['オーディション名']}</div><div class="kanban-card-meta">${d['締切日']?'〆 '+fmtDate(d['締切日']):''} ${d['対応者']==='マネージャー'?'<span style="color:var(--accent)">●MGR</span>':''}</div><span class="kanban-card-genre">${GENRE_ICONS[d['ジャンル']]||'📋'} ${d['ジャンル']}</span>${resultCls?` <span class="kanban-card-result ${resultCls}">${d['結果']}</span>`:''}${d['アクション']?`<div style="font-size:.65rem;color:var(--text-muted);margin-top:4px">→ ${d['アクション']}</div>`:''}${fileLink?`<div style="margin-top:4px">${fileLink}</div>`:''}</div>`;
+  const typeBadge = `<span style="display:inline-block;font-size:.6rem;font-weight:700;color:#fff;background:${typeColor};padding:1px 6px;border-radius:3px;margin-bottom:4px">${typeIcon} ${escapeHtml(typeVal)}</span>`;
+  return `<div class="kanban-card" style="position:relative; ${typeVal !== 'オーディション' ? 'border-left:3px solid '+typeColor : ''}">
+    <button class="card-edit-btn" data-edit-id="${escapeHtml(d['ID'])}" title="編集" style="position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;font-size:.8rem;padding:2px;line-height:1;">✏️</button>
+    ${typeBadge}
+    <div class="kanban-card-talent"><span class="talent-badge-sm" style="background:${talentColor(d['タレント名'])}">${escapeHtml(d['タレント名'])}</span></div>
+    <div class="kanban-card-title">${escapeHtml(d['オーディション名'])}</div>
+    <div class="kanban-card-meta">${d['締切日']?'〆 '+fmtDate(d['締切日']):''} ${d['対応者']==='マネージャー'?'<span style="color:var(--accent)">●MGR</span>':''}</div>
+    <span class="kanban-card-genre">${GENRE_ICONS[d['ジャンル']]||'📋'} ${escapeHtml(d['ジャンル'])}</span>
+    ${resultCls?` <span class="kanban-card-result ${resultCls}">${escapeHtml(d['結果'])}</span>`:''}
+    ${d['アクション']?`<div style="font-size:.65rem;color:var(--text-muted);margin-top:4px">→ ${escapeHtml(d['アクション'])}</div>`:''}
+    ${fileLink?`<div style="margin-top:4px">${fileLink}</div>`:''}
+  </div>`;
 }
 
 // ===== List =====
@@ -553,9 +574,9 @@ function renderList() {
     const sCls = d['ステータス']==='情報収集'?'status-info':d['ステータス']==='応募準備'?'status-prep':d['ステータス']==='書類結果待ち'?'status-sent':d['ステータス']==='2次以降AD'?'status-auditioned':d['ステータス']==='受注'?'status-order':'status-completed';
     const rCls = d['結果']==='合格'?'result-pass':(d['結果']||'').startsWith('不合格')?'result-fail':d['結果']==='結果待ち'?'result-waiting':'';
     const ownerCls = d['対応者']==='マネージャー'?'owner-manager':'';
-    const fileLink = d['資料リンク'] ? `<a href="${d['資料リンク']}" target="_blank" style="font-size:.7rem;color:var(--accent)">📎</a>` : '';
-    return `<tr><td data-label="タレント"><span class="talent-badge-sm" style="background:${talentColor(d['タレント名'])}">${d['タレント名']}</span></td><td data-label="案件名">${d['オーディション名']} ${fileLink}</td><td data-label="ジャンル">${GENRE_ICONS[d['ジャンル']]||''} ${d['ジャンル']}</td><td data-label="締切">${fmtDate(d['締切日'])}</td><td data-label="ステータス"><span class="status-badge ${sCls}">${d['ステータス']}</span></td><td data-label="対応者" class="${ownerCls}">${d['対応者']}</td><td data-label="結果">${rCls?`<span class="kanban-card-result ${rCls}">${d['結果']}</span>`:d['結果']||'-'}</td><td data-label="アクション" style="font-size:.75rem;color:var(--text-muted)">${d['アクション']||'-'}</td></tr>`;
-  }).join('') || '<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📭</div><p>該当なし</p></div></td></tr>';
+    const fileLink = d['資料リンク'] ? `<a href="${escapeHtml(d['資料リンク'])}" target="_blank" style="font-size:.7rem;color:var(--accent)">📎</a>` : '';
+    return `<tr><td data-label="タレント"><span class="talent-badge-sm" style="background:${talentColor(d['タレント名'])}">${escapeHtml(d['タレント名'])}</span></td><td data-label="案件名">${escapeHtml(d['オーディション名'])} ${fileLink}</td><td data-label="ジャンル">${GENRE_ICONS[d['ジャンル']]||''} ${escapeHtml(d['ジャンル'])}</td><td data-label="締切">${fmtDate(d['締切日'])}</td><td data-label="ステータス"><span class="status-badge ${sCls}">${escapeHtml(d['ステータス'])}</span></td><td data-label="対応者" class="${ownerCls}">${escapeHtml(d['対応者'])}</td><td data-label="結果">${rCls?`<span class="kanban-card-result ${rCls}">${escapeHtml(d['結果'])}</span>`:escapeHtml(d['結果'])||'-'}</td><td data-label="アクション" style="font-size:.75rem;color:var(--text-muted)">${escapeHtml(d['アクション'])||'-'}</td><td data-label="操作"><button class="card-edit-btn" data-edit-id="${escapeHtml(d['ID'])}" title="編集" style="background:none;border:none;cursor:pointer;font-size:.9rem;padding:2px;">✏️</button></td></tr>`;
+  }).join('') || '<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📭</div><p>該当なし</p></div></td></tr>';
 }
 
 // ===== Calendar =====
@@ -638,7 +659,7 @@ function renderCalendar() {
 }
 
 async function loadCalendarDataForMonth() {
-  if (!GAS_WEBAPP_URL) return;
+  if (!hasGasUrl()) return;
   try {
     const start = new Date(calYear, calMonth, 1).toISOString();
     const end = new Date(calYear, calMonth + 1, 0, 23, 59, 59).toISOString();
@@ -648,8 +669,7 @@ async function loadCalendarDataForMonth() {
       return d.getMonth() === calMonth && d.getFullYear() === calYear;
     });
     if (hasData) return;
-    const res = await fetchWithTimeout(`${GAS_WEBAPP_URL}?action=calendar&start=${start}&end=${end}`, {}, 5000);
-    const json = await res.json();
+    const json = await fetchWithTimeout(withToken(`${GAS_WEBAPP_URL}?action=calendar&start=${start}&end=${end}`), {}, 5000);
     if (json.success && json.events) {
       calendarEvents = [...calendarEvents, ...json.events];
       renderCalendar();
@@ -829,13 +849,96 @@ document.addEventListener('DOMContentLoaded', () => {
 // ===== GAS WebApp URL =====
 // デプロイ後にここにURLを設定してください
 const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwkG3VmSjPZ07xmapteejCGlvgjIB5oQuTfdgqXCk2X4ffsXPci4PpZwNGdNC3AK_ZGEw/exec';
+const API_TOKEN = 'gate_dashboard_api_token_secret_2026';
+
+function hasGasUrl() {
+  return GAS_WEBAPP_URL && !GAS_WEBAPP_URL.includes('YOUR_GAS_WEBAPP_URL_ID_HERE');
+}
+
+function withToken(url) {
+  return url + (url.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(API_TOKEN);
+}
 
 // ===== Modal =====
 let selectedFile = null;
 let selectedDriveFile = null; // Driveから選んだファイル
 let driveFilesCache = [];
 
+let editingId = null;
+
 function openAddModal() {
+  editingId = null;
+  const modalTitle = document.getElementById('modalTitle');
+  if (modalTitle) modalTitle.textContent = '＋ 新規案件登録';
+  document.getElementById('addForm').reset();
+  clearFile();
+  
+  // オーディション日入力エリアのリセット
+  const list = document.getElementById('auddateList');
+  if (list) {
+    list.innerHTML = '<div class="auddate-row"><input type="date" class="auddate-input"><button type="button" class="auddate-remove" onclick="removeAudDate(this)" title="削除">✕</button></div>';
+  }
+  
+  selectedDriveFile = null;
+  switchFileTab('upload');
+  document.getElementById('addModal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function openEditModal(id) {
+  editingId = id;
+  const item = allData.find(d => String(d.ID) === String(id));
+  if (!item) {
+    showToast('⚠️ 編集対象のデータが見つかりません');
+    return;
+  }
+  
+  const modalTitle = document.getElementById('modalTitle');
+  if (modalTitle) modalTitle.textContent = '✏️ 案件情報の編集';
+  document.getElementById('addForm').reset();
+  clearFile();
+  selectedDriveFile = null;
+  switchFileTab('upload');
+  
+  // 値をフォームに設定
+  document.getElementById('f-type').value = item['案件種別'] || 'オーディション';
+  document.getElementById('f-talent').value = item['タレント名'] || '';
+  document.getElementById('f-name').value = item['オーディション名'] || '';
+  document.getElementById('f-genre').value = item['ジャンル'] || '';
+  
+  const formatInputDate = (dateStr) => {
+    const d = parseDate(dateStr);
+    if (!d) return '';
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+  
+  document.getElementById('f-deadline').value = formatInputDate(item['締切日']);
+  
+  // オーディション日 (複数日程)
+  const auddateList = document.getElementById('auddateList');
+  if (auddateList) {
+    auddateList.innerHTML = '';
+    const audDateStr = item['オーディション日'] || '';
+    const audDates = audDateStr.split(',').map(s => s.trim()).filter(v => v);
+    if (audDates.length === 0) {
+      addAudDate('');
+    } else {
+      audDates.forEach(dStr => {
+        addAudDate(formatInputDate(dStr));
+      });
+    }
+  }
+  
+  document.getElementById('f-result-date').value = formatInputDate(item['結果発表']);
+  document.getElementById('f-release-date').value = formatInputDate(item['公開日']);
+  document.getElementById('f-status').value = item['ステータス'] || '情報収集';
+  document.getElementById('f-owner').value = item['対応者'] || 'マネージャー';
+  document.getElementById('f-action').value = item['アクション'] || '';
+  document.getElementById('f-notes').value = item['備考'] || '';
+  
   document.getElementById('addModal').classList.add('show');
   document.body.style.overflow = 'hidden';
 }
@@ -848,6 +951,7 @@ function closeAddModal() {
   selectedDriveFile = null;
   driveFilesCache = [];
   switchFileTab('upload');
+  editingId = null;
 }
 
 // ===== Drive File Picker =====
@@ -868,8 +972,12 @@ async function loadDriveFiles() {
   const el = document.getElementById('driveFileList');
   if (!el) return;
   el.innerHTML = '<div class="drive-loading">📂 読み込み中...</div>';
+  if (!hasGasUrl()) {
+    el.innerHTML = '<div class="drive-loading">⚠️ GAS WebApp URLが未設定です</div>';
+    return;
+  }
   try {
-    const json = await fetchWithTimeout(GAS_WEBAPP_URL + '?action=folder_files', {}, 5000);
+    const json = await fetchWithTimeout(withToken(GAS_WEBAPP_URL + '?action=folder_files'), {}, 5000);
     if (json.success && json.files) {
       driveFilesCache = json.files;
       renderDriveFiles(json.files);
@@ -895,11 +1003,11 @@ function renderDriveFiles(files) {
     const date = new Date(f.modifiedDate).toLocaleDateString('ja-JP', {month:'numeric', day:'numeric'});
     const sel  = selectedDriveFile?.id === f.id;
     const safeName = f.name.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    return `<div class="drive-file-item${sel ? ' selected' : ''}" onclick="selectDriveFile('${f.id}','${safeName}','${f.url}')">
+    return `<div class="drive-file-item${sel ? ' selected' : ''}" onclick="selectDriveFile('${escapeHtml(f.id)}','${escapeHtml(safeName)}','${escapeHtml(f.url)}')">
       <span class="drive-file-icon">${icon}</span>
       <div class="drive-file-info">
-        <div class="drive-file-name">${f.name}</div>
-        <div class="drive-file-meta">${date} 更新</div>
+        <div class="drive-file-name">${escapeHtml(f.name)}</div>
+        <div class="drive-file-meta">${escapeHtml(date)} 更新</div>
       </div>
       ${sel ? '<span class="drive-file-check">✓ 選択中</span>' : ''}
     </div>`;
@@ -980,6 +1088,7 @@ async function handleAddSubmit(e) {
   const audDate = audDates.join(', ');
 
   const formData = {
+    token: API_TOKEN,
     type: document.getElementById('f-type').value,
     talentName: document.getElementById('f-talent').value,
     auditionName: document.getElementById('f-name').value,
@@ -994,6 +1103,11 @@ async function handleAddSubmit(e) {
     result: document.getElementById('f-status').value === '受注' ? '合格' : '未定',
     notes: document.getElementById('f-notes').value,
   };
+
+  if (editingId) {
+    formData.action = 'update';
+    formData.id = editingId;
+  }
 
   // Driveから選択したファイルを優先
   if (selectedDriveFile) {
@@ -1011,7 +1125,7 @@ async function handleAddSubmit(e) {
   }
 
   try {
-    if (GAS_WEBAPP_URL) {
+    if (hasGasUrl()) {
       // GAS WebAppに送信
       const res = await fetch(GAS_WEBAPP_URL, {
         method: 'POST',
@@ -1019,35 +1133,64 @@ async function handleAddSubmit(e) {
       });
       const result = await res.json();
       if (result.success) {
-        showToast('✅ スプレッドシートに追加しました！');
+        showToast(editingId ? '✅ スプレッドシートを更新しました！' : '✅ スプレッドシートに追加しました！');
+        if (result.fileUrl) formData.fileUrl = result.fileUrl;
+        if (result.id && !editingId) formData.id = result.id;
       } else {
         throw new Error(result.error || '送信失敗');
       }
     } else {
       // GAS未設定: ローカルデータに直接追加
-      showToast('📝 ローカルデータに追加しました（GAS WebApp URLを設定するとスプシ連携可能）');
+      showToast(editingId ? '📝 ローカルデータを更新しました' : '📝 ローカルデータに追加しました（GAS WebApp URLを設定するとスプシ連携可能）');
     }
 
     // ローカルデータにも即時反映
     const today = new Date();
     const todayStr = `${today.getFullYear()}/${today.getMonth()+1}/${today.getDate()}`;
-    allData.push({
-      ID: String(allData.length + 1),
-      案件種別: formData.type || 'オーディション',
-      タレント名: formData.talentName,
-      オーディション名: formData.auditionName,
-      ジャンル: formData.genre,
-      締切日: formData.deadline,
-      オーディション日: formData.auditionDate,
-      ステータス: formData.status,
-      対応者: formData.owner,
-      アクション: formData.action,
-      結果: '未定',
-      備考: formData.notes,
-      登録日: todayStr,
-      更新日: todayStr,
-      資料リンク: '',
-    });
+    if (editingId) {
+      const idx = allData.findIndex(d => String(d.ID) === String(editingId));
+      if (idx !== -1) {
+        const existing = allData[idx];
+        allData[idx] = {
+          ...existing,
+          案件種別: formData.type || 'オーディション',
+          タレント名: formData.talentName,
+          オーディション名: formData.auditionName,
+          ジャンル: formData.genre,
+          締切日: formData.deadline,
+          オーディション日: formData.auditionDate,
+          結果発表: formData.resultDate,
+          公開日: formData.releaseDate,
+          ステータス: formData.status,
+          対応者: formData.owner,
+          アクション: formData.action,
+          結果: formData.result,
+          備考: formData.notes,
+          更新日: todayStr,
+          資料リンク: formData.fileUrl || existing['資料リンク'] || '',
+        };
+      }
+    } else {
+      allData.push({
+        ID: String(formData.id || allData.length + 1),
+        案件種別: formData.type || 'オーディション',
+        タレント名: formData.talentName,
+        オーディション名: formData.auditionName,
+        ジャンル: formData.genre,
+        締切日: formData.deadline,
+        オーディション日: formData.auditionDate,
+        結果発表: formData.resultDate,
+        公開日: formData.releaseDate,
+        ステータス: formData.status,
+        対応者: formData.owner,
+        アクション: formData.action,
+        結果: formData.result,
+        備考: formData.notes,
+        登録日: todayStr,
+        更新日: todayStr,
+        資料リンク: formData.fileUrl || '',
+      });
+    }
     renderAll();
     closeAddModal();
 
@@ -1085,11 +1228,11 @@ function showToast(msg) {
 }
 
 // ===== Multiple Audition Dates =====
-function addAudDate() {
+function addAudDate(val = '') {
   const list = document.getElementById('auddateList');
   const row = document.createElement('div');
   row.className = 'auddate-row';
-  row.innerHTML = '<input type="date" class="auddate-input"><button type="button" class="auddate-remove" onclick="removeAudDate(this)" title="削除">✕</button>';
+  row.innerHTML = `<input type="date" class="auddate-input" value="${val}"><button type="button" class="auddate-remove" onclick="removeAudDate(this)" title="削除">✕</button>`;
   list.appendChild(row);
 }
 
@@ -1107,7 +1250,6 @@ let worksSearch = '';
 
 function renderWorks() {
   let data = getFiltered();
-  console.log("DEBUG_WORKS_DATA:", JSON.stringify(data.slice(0, 3)));
 
   // Type filter
   if (worksFilter !== 'all') {
@@ -1135,7 +1277,7 @@ function renderWorks() {
     types[t] = (types[t] || 0) + 1;
   });
   summary.innerHTML = Object.entries(types).map(([t, c]) =>
-    `<div class="works-type-badge" style="--type-color:${TYPE_COLORS[t] || '#888'}">${TYPE_ICONS[t] || '📋'} ${t} <strong>${c}</strong></div>`
+    `<div class="works-type-badge" style="--type-color:${TYPE_COLORS[t] || '#888'}">${TYPE_ICONS[t] || '📋'} ${escapeHtml(t)} <strong>${c}</strong></div>`
   ).join('');
 
   // Table
@@ -1146,16 +1288,17 @@ function renderWorks() {
     const sCls = d['ステータス']==='情報収集'?'status-info':d['ステータス']==='応募準備'?'status-prep':d['ステータス']==='書類結果待ち'?'status-sent':d['ステータス']==='2次以降AD'?'status-auditioned':d['ステータス']==='受注'?'status-order':'status-completed';
     const dateStr = d['オーディション日'] ? fmtDate(d['オーディション日']) : (d['締切日'] ? '〆'+fmtDate(d['締切日']) : '-');
     return `<tr>
-      <td data-label="種別"><span class="type-badge" style="background:${typeColor}">${TYPE_ICONS[type]||''} ${type}</span></td>
-      <td data-label="タレント"><span class="talent-badge-sm" style="background:${talentColor(d['タレント名'])}">${d['タレント名']}</span></td>
-      <td data-label="案件名">${d['オーディション名']}</td>
-      <td data-label="ジャンル">${GENRE_ICONS[d['ジャンル']]||''} ${d['ジャンル']}</td>
-      <td data-label="日程">${dateStr}</td>
-      <td data-label="ステータス"><span class="status-badge ${sCls}">${d['ステータス']}</span></td>
-      <td data-label="対応者">${d['対応者']}</td>
-      <td data-label="備考" style="font-size:.75rem;color:var(--text-muted)">${d['備考']||'-'}</td>
+      <td data-label="種別"><span class="type-badge" style="background:${typeColor}">${TYPE_ICONS[type]||''} ${escapeHtml(type)}</span></td>
+      <td data-label="タレント"><span class="talent-badge-sm" style="background:${talentColor(d['タレント名'])}">${escapeHtml(d['タレント名'])}</span></td>
+      <td data-label="案件名">${escapeHtml(d['オーディション名'])}</td>
+      <td data-label="ジャンル">${GENRE_ICONS[d['ジャンル']]||''} ${escapeHtml(d['ジャンル'])}</td>
+      <td data-label="日程">${escapeHtml(dateStr)}</td>
+      <td data-label="ステータス"><span class="status-badge ${sCls}">${escapeHtml(d['ステータス'])}</span></td>
+      <td data-label="対応者">${escapeHtml(d['対応者'])}</td>
+      <td data-label="備考" style="font-size:.75rem;color:var(--text-muted)">${escapeHtml(d['備考'])||'-'}</td>
+      <td data-label="操作"><button class="card-edit-btn" data-edit-id="${escapeHtml(d['ID'])}" title="編集" style="background:none;border:none;cursor:pointer;font-size:.9rem;padding:2px;">✏️</button></td>
     </tr>`;
-  }).join('') || '<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📭</div><p>該当する案件はありません</p></div></td></tr>';
+  }).join('') || '<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📭</div><p>該当する案件はありません</p></div></td></tr>';
 }
 
 // ===== Stats Tabs Initialization =====
@@ -1201,17 +1344,17 @@ function renderNews() {
   
   el.innerHTML = data.map(n => {
     const tColor = talentColor(n['タレント名']);
-    const titleClean = (n['タイトル'] || '').replace(/"/g, '&quot;');
+    const titleClean = escapeHtml(n['タイトル'] || '');
     const linkUrl = n['リンク'] || '#';
     const media = n['メディア名'] || 'Google News';
     const dateStr = n['日付'] || '';
-    return `<a href="${linkUrl}" target="_blank" class="news-card">
+    return `<a href="${escapeHtml(linkUrl)}" target="_blank" class="news-card">
       <div class="news-card-meta">
         <div class="news-card-left">
-          <span class="news-talent-tag" style="background:${tColor}">${n['タレント名']}</span>
-          <span class="news-media-tag">${media}</span>
+          <span class="news-talent-tag" style="background:${tColor}">${escapeHtml(n['タレント名'])}</span>
+          <span class="news-media-tag">${escapeHtml(media)}</span>
         </div>
-        <span class="news-date">${dateStr}</span>
+        <span class="news-date">${escapeHtml(dateStr)}</span>
       </div>
       <div class="news-title">${titleClean}</div>
     </a>`;
@@ -1277,18 +1420,18 @@ function renderSalesAttackToDo() {
     const urgent = daysLeft <= 3 ? 'style="color:var(--accent);font-weight:700;"' : '';
     const dateLabel = daysLeft === 0 ? '今日' : daysLeft < 0 ? '期限超過' : `${daysLeft}日後`;
     
-    const talentBadge = d['提案タレント'] ? d['提案タレント'].split(',').map(t => `<span class="talent-badge-sm" style="background:${talentColor(t.trim())};margin-right:2px;">${t.trim()}</span>`).join('') : '';
+    const talentBadge = d['提案タレント'] ? d['提案タレント'].split(',').map(t => `<span class="talent-badge-sm" style="background:${talentColor(t.trim())};margin-right:2px;">${escapeHtml(t.trim())}</span>`).join('') : '';
     
     return `<div class="sales-todo-card">
       <div class="sales-todo-header">
-        <span class="sales-todo-company">${d['社名']}</span>
+        <span class="sales-todo-company">${escapeHtml(d['社名'])}</span>
         <span class="sales-todo-date" ${urgent}>${fmtDate(d['次回アクション予定日'])} (${dateLabel})</span>
       </div>
-      <div class="sales-todo-action">👉 ${d['次回アクション内容'] || 'アクション未定'}</div>
+      <div class="sales-todo-action">👉 ${escapeHtml(d['次回アクション内容'] || 'アクション未定')}</div>
       <div class="sales-todo-meta">
-        <span class="sales-rating-badge ${ratingClass}">確度: ${rating}</span>
+        <span class="sales-rating-badge ${ratingClass}">確度: ${escapeHtml(rating)}</span>
         ${talentBadge}
-        <span style="margin-left:auto;">担当: ${d['担当者名'] || '-'}</span>
+        <span style="margin-left:auto;">担当: ${escapeHtml(d['担当者名'] || '-')}</span>
       </div>
     </div>`;
   }).join('');
@@ -1345,27 +1488,29 @@ function renderSalesAttackKanban() {
     container.innerHTML = list.map(d => {
       const rating = d['確度/感触'] || 'C';
       const ratingClass = `rating-${rating.toLowerCase()}`;
-      const method = d['アプローチ方法'] ? ` <span style="font-size:.65rem;color:var(--text-muted)">(${d['アプローチ方法']})</span>` : '';
-      const talentBadge = d['提案タレント'] ? d['提案タレント'].split(',').map(t => `<span class="talent-badge-sm" style="background:${talentColor(t.trim())};margin-top:4px;display:inline-block;margin-right:2px;">${t.trim()}</span>`).join('') : '';
+      const method = d['アプローチ方法'] ? ` <span style="font-size:.65rem;color:var(--text-muted)">(${escapeHtml(d['アプローチ方法'])})</span>` : '';
+      const talentBadge = d['提案タレント'] ? d['提案タレント'].split(',').map(t => `<span class="talent-badge-sm" style="background:${talentColor(t.trim())};margin-top:4px;display:inline-block;margin-right:2px;">${escapeHtml(t.trim())}</span>`).join('') : '';
       
       // 備考に含まれる画像リンクの抽出
       let imageLink = '';
-      const imgMatch = (d['備考/メモ'] || '').match(/(https:\/\/drive\.google\.com\/[^\s]+)/);
+      const rawNotes = d['備考/メモ'] || '';
+      const imgMatch = rawNotes.match(/(https:\/\/drive\.google\.com\/[^\s]+)/);
       if (imgMatch) {
-        imageLink = `<div style="margin-top:6px;"><a href="${imgMatch[0]}" target="_blank" style="font-size:.65rem;color:var(--accent);text-decoration:none;">🖼️ 名刺画像</a></div>`;
+        const safeUrl = encodeURI(imgMatch[0]);
+        imageLink = `<div style="margin-top:6px;"><a href="${safeUrl}" target="_blank" style="font-size:.65rem;color:var(--accent);text-decoration:none;">🖼️ 名刺画像</a></div>`;
       }
       
       return `<div class="sales-kanban-card">
-        <span class="sales-kanban-card-badge">${d['アプローチ先種別']}</span>
-        <div class="sales-kanban-card-title">${d['社名']}</div>
+        <span class="sales-kanban-card-badge">${escapeHtml(d['アプローチ先種別'])}</span>
+        <div class="sales-kanban-card-title">${escapeHtml(d['社名'])}</div>
         <div class="sales-kanban-card-meta">
-          <span class="sales-rating-badge ${ratingClass}">確度: ${rating}</span>
+          <span class="sales-rating-badge ${ratingClass}">確度: ${escapeHtml(rating)}</span>
           ${method}
-          <div>担当: ${d['担当者名'] || '-'}</div>
+          <div>担当: ${escapeHtml(d['担当者名'] || '-')}</div>
           ${d['最終アプローチ日'] ? `<div>最終: ${fmtDate(d['最終アプローチ日'])}</div>` : ''}
         </div>
         <div style="margin-top:4px;">${talentBadge}</div>
-        ${d['次回アクション内容'] ? `<div class="sales-kanban-card-desc">📌 ToDo: ${d['次回アクション内容']}</div>` : ''}
+        ${d['次回アクション内容'] ? `<div class="sales-kanban-card-desc">📌 ToDo: ${escapeHtml(d['次回アクション内容'])}</div>` : ''}
         ${imageLink}
       </div>`;
     }).join('') || '<div style="text-align:center;color:var(--text-muted);font-size:.75rem;padding:20px">なし</div>';
@@ -1394,29 +1539,36 @@ function renderSalesAttackList() {
     const ratingClass = rating !== '-' ? `rating-${rating.toLowerCase()}` : '';
     const dateStr = d['最終アプローチ日'] ? fmtDate(d['最終アプローチ日']) : '-';
     const nextDateStr = d['次回アクション予定日'] ? fmtDate(d['次回アクション予定日']) : '-';
-    const nextAction = d['次回アクション内容'] ? `<div>${nextDateStr}: ${d['次回アクション内容']}</div>` : '-';
+    const nextAction = d['次回アクション内容'] ? `<div>${nextDateStr}: ${escapeHtml(d['次回アクション内容'])}</div>` : '-';
     
     // 備考の画像リンク対応
-    let notesText = d['備考/メモ'] || '-';
-    const imgMatch = notesText.match(/(https:\/\/drive\.google\.com\/[^\s]+)/);
+    let notesText = escapeHtml(d['備考/メモ'] || '-');
+    const rawNotes = d['備考/メモ'] || '';
+    const imgMatch = rawNotes.match(/(https:\/\/drive\.google\.com\/[^\s]+)/);
     if (imgMatch) {
-      notesText = notesText.replace(imgMatch[0], `<a href="${imgMatch[0]}" target="_blank">リンク</a>`);
+      const safeUrl = encodeURI(imgMatch[0]);
+      notesText = notesText.replace(escapeHtml(imgMatch[0]), `<a href="${safeUrl}" target="_blank" rel="noopener">リンク</a>`);
     }
     
     return `<tr>
-      <td data-label="社名" style="font-weight:700;">${d['社名']}</td>
-      <td data-label="種別"><span class="type-badge" style="background:#6B7280">${d['アプローチ先種別']}</span></td>
-      <td data-label="担当者">${d['担当者名'] || '-'}</td>
-      <td data-label="連絡先" style="font-size:.75rem;">${d['連絡先'] || '-'}</td>
+      <td data-label="社名" style="font-weight:700;">${escapeHtml(d['社名'])}</td>
+      <td data-label="種別"><span class="type-badge" style="background:#6B7280">${escapeHtml(d['アプローチ先種別'])}</span></td>
+      <td data-label="担当者">${escapeHtml(d['担当者名'] || '-')}</td>
+      <td data-label="連絡先" style="font-size:.75rem;">${escapeHtml(d['連絡先'] || '-')}</td>
       <td data-label="最終アプローチ">${dateStr}</td>
-      <td data-label="方法">${d['アプローチ方法'] || '-'}</td>
-      <td data-label="提案タレント">${d['提案タレント'] ? d['提案タレント'].split(',').map(t => `<span class="talent-badge-sm" style="background:${talentColor(t.trim())};margin-right:2px;">${t.trim()}</span>`).join('') : '-'}</td>
-      <td data-label="確度">${rating !== '-' ? `<span class="sales-rating-badge ${ratingClass}">${rating}</span>` : '-'}</td>
-      <td data-label="ステータス"><span class="status-badge status-prep">${d['アタックステータス']}</span></td>
+      <td data-label="方法">${escapeHtml(d['アプローチ方法'] || '-')}</td>
+      <td data-label="提案タレント">${d['提案タレント'] ? d['提案タレント'].split(',').map(t => `<span class="talent-badge-sm" style="background:${talentColor(t.trim())};margin-right:2px;">${escapeHtml(t.trim())}</span>`).join('') : '-'}</td>
+      <td data-label="確度">${rating !== '-' ? `<span class="sales-rating-badge ${ratingClass}">${escapeHtml(rating)}</span>` : '-'}</td>
+      <td data-label="ステータス"><span class="status-badge status-prep">${escapeHtml(d['アタックステータス'])}</span></td>
       <td data-label="次回ToDo" style="font-size:.75rem;">${nextAction}</td>
-      <td data-label="備考" style="font-size:.75rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${d['備考/メモ']}">${notesText}</td>
+      <td data-label="備考" style="font-size:.75rem;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(d['備考/メモ'])}">${notesText}</td>
+      <td data-label="アクション">
+        <button class="btn btn-secondary btn-sm" onclick="openBriefingModal('${escapeHtml(d['ID'] || d['id'] || d['Row'])}')">
+          ブリーフィング
+        </button>
+      </td>
     </tr>`;
-  }).join('') || '<tr><td colspan="11"><div class="empty-state"><div class="empty-icon">📭</div><p>営業アタックデータはありません</p></div></td></tr>';
+  }).join('') || '<tr><td colspan="12"><div class="empty-state"><div class="empty-icon">📭</div><p>営業アタックデータはありません</p></div></td></tr>';
 }
 
 // ===== Sales Attack Modal Functions =====
@@ -1459,11 +1611,12 @@ async function handleSalesAddSubmit(e) {
     status: document.getElementById('sf-status').value,
     rating: document.getElementById('sf-rating').value,
     talentName: document.getElementById('sf-talentName').value,
-    notes: document.getElementById('sf-notes').value
+    notes: document.getElementById('sf-notes').value,
+    token: API_TOKEN
   };
   
   try {
-    if (GAS_WEBAPP_URL) {
+    if (hasGasUrl()) {
       const res = await fetch(GAS_WEBAPP_URL, {
         method: 'POST',
         body: JSON.stringify(formData),
@@ -1522,13 +1675,13 @@ async function loadSurveyData() {
   if (!container) return;
   container.innerHTML = '<div class="news-loading">📊 アンケート回答を読み込み中...</div>';
   
-  if (!GAS_WEBAPP_URL) {
+  if (!hasGasUrl()) {
     container.innerHTML = '<div class="news-loading">⚠️ GAS WebApp URL が設定されていません。</div>';
     return;
   }
   
   try {
-    const res = await fetch(`${GAS_WEBAPP_URL}?action=survey`);
+    const res = await fetch(withToken(`${GAS_WEBAPP_URL}?action=survey`));
     const json = await res.json();
     if (json.success && json.data) {
       surveyDataCache = json.data;
@@ -1562,23 +1715,36 @@ function renderSurveyList() {
   }
   
   container.innerHTML = data.map(d => {
-    return `<div class="survey-card" onclick="openSurveyDetail('${d.id}')" style="cursor:pointer; background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; transition: all var(--transition); box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+    let raw = {};
+    try {
+      if (d.rawData) raw = JSON.parse(d.rawData);
+    } catch (e) {}
+    const hometown = raw.faqHometown || '';
+    const skills = raw.faqSkills || '';
+
+    return `<div class="survey-card" onclick="openSurveyDetail('${escapeHtml(d.id)}')" style="cursor:pointer; background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; transition: all var(--transition); box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
       <div class="survey-card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:8px;">
-        <span class="talent-badge-sm" style="background:${talentColor(d.talentName)}">${d.talentName}</span>
-        <span class="survey-card-date" style="font-size:0.7rem; color:var(--text-muted);">${d.updateDate} 更新</span>
+        <span class="talent-badge-sm" style="background:${talentColor(d.talentName)}">${escapeHtml(d.talentName)}</span>
+        <span class="survey-card-date" style="font-size:0.7rem; color:var(--text-muted);">${escapeHtml(d.updateDate)} 更新</span>
       </div>
       <div class="survey-card-body" style="font-size:0.8rem; display:flex; flex-direction:column; gap:6px; color:var(--text-secondary);">
         <div class="survey-card-item">
-          <strong>🎬 映画:</strong> <span>${d.bibleMovie || '-'}</span>
+          <strong>🎬 映画:</strong> <span>${escapeHtml(d.bibleMovie) || '-'}</span>
         </div>
         <div class="survey-card-item">
-          <strong>📺 ドラマ:</strong> <span>${d.bibleDrama || '-'}</span>
+          <strong>📺 ドラマ:</strong> <span>${escapeHtml(d.bibleDrama) || '-'}</span>
         </div>
         <div class="survey-card-item">
-          <strong>🌟 最近の作品:</strong> <span>${d.recentTitle || '-'}</span>
+          <strong>🌟 最近の作品:</strong> <span>${escapeHtml(d.recentTitle) || '-'}</span>
         </div>
         <div class="survey-card-item">
-          <strong>👥 目標俳優:</strong> <span>${d.targetActor || '-'}</span>
+          <strong>👥 目標俳優:</strong> <span>${escapeHtml(d.targetActor) || '-'}</span>
+        </div>
+        <div class="survey-card-item">
+          <strong>🏅 特技:</strong> <span>${escapeHtml(skills) || '-'}</span>
+        </div>
+        <div class="survey-card-item">
+          <strong>📍 出身:</strong> <span>${escapeHtml(hometown) || '-'}</span>
         </div>
       </div>
       <div class="survey-card-footer" style="margin-top:14px;">
@@ -1624,20 +1790,20 @@ function printSurveyDetail() {
 }
 
 function renderSurveyDetailHTML(talentName, updateDate, raw) {
-  const movieAspectMap = { words: 'セリフ・言葉の紡ぎ方', visual: '映像美・色彩・アングル', sound: '音楽・音響効果', acting: '役者の佇まい・肉体表現', story: '緻密なストーリー構成', atmosphere: '全体の空気感・余白の美' };
+  const movieAspectMap = { words: 'セリフ・言葉の紡ぎ方', visual: '映像美・色彩・アングル', sound: '音楽・音響効果', acting: '役者の佇まい・肉体表現', story: '緻密なストーリー構成', atmosphere: '全体の空気感・余白 of 美' };
   const dramaAspectMap = { words: 'テンポ感のある会話・セリフ', characters: 'キャラクターの愛らしさ・人間味', social: '社会的なテーマや切り込み方', ensemble: 'アンサンブル（役者陣の掛け合い）', music: '劇伴（音楽）や主題歌の連動' };
   const recentAspectMap = { acting: '同世代や特定の役者の演技への衝撃', directing: '演出手法やカメラワークの面白さ', script: '脚本の巧みさやメッセージ性', empathy: '役柄への深い共感や自己投影', jealousy: '「自分もこの場に立ちたかった」という嫉忑' };
   const actorAspectMap = { presence: '圧倒的な佇まい・そこにいるだけで存在感', eyes: '目の動きや「沈黙・余白」を使った内面表現', versatile: '作品によって別人になるカメレオン演技', natural: '作り物感のない、生々しくリアルな生活感', comedy: '間の取り方やユーモアのある芝居', voice: '声のトーンや発話のテンポ' };
   const roleMap = { villain: '静かな狂気を秘めた悪役・トリックスター', lonely: '影のある孤独な主人公・アウトサイダー', moodmaker: 'コメディや会話を牽引するムードメーカー', daily: '日常を描く作品の等身大な人物', elite: '知的で冷徹なエリート・専門職', passionate: '真っ直ぐで不器用な, 熱量のある熱血漢' };
   
-  const movieAspects = (raw.bibleMovieAspects || []).map(k => movieAspectMap[k] || k).join(', ');
-  const dramaAspects = (raw.bibleDramaAspects || []).map(k => dramaAspectMap[k] || k).join(', ');
-  const recentAspects = (raw.recentAspects || []).map(k => recentAspectMap[k] || k).join(', ');
-  const actorAspects = (raw.actorAspects || []).map(k => actorAspectMap[k] || k).join(', ');
-  const desiredRoles = (raw.desiredRoles || []).map(k => roleMap[k] || k).join(', ');
+  const movieAspects = (raw.bibleMovieAspects || []).map(k => escapeHtml(movieAspectMap[k] || k)).join(', ');
+  const dramaAspects = (raw.bibleDramaAspects || []).map(k => escapeHtml(dramaAspectMap[k] || k)).join(', ');
+  const recentAspects = (raw.recentAspects || []).map(k => escapeHtml(recentAspectMap[k] || k)).join(', ');
+  const actorAspects = (raw.actorAspects || []).map(k => escapeHtml(actorAspectMap[k] || k)).join(', ');
+  const desiredRoles = (raw.desiredRoles || []).map(k => escapeHtml(roleMap[k] || k)).join(', ');
   
   const recentMediaMap = { movie: '映画', drama: 'ドラマ', stage: '舞台', anime: 'アニメ', other: 'その他' };
-  const recentMedia = recentMediaMap[raw.recentMedia] || raw.recentMedia || '-';
+  const recentMedia = escapeHtml(recentMediaMap[raw.recentMedia] || raw.recentMedia || '-');
 
   return `
     <div style="padding: 0 20px;">
@@ -1649,8 +1815,8 @@ function renderSurveyDetailHTML(talentName, updateDate, raw) {
         </div>
         <div style="text-align: right;">
           <span style="font-size: 0.65rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Actor Name</span>
-          <h3 style="font-size: 1.3rem; margin: 2px 0 0 0; color: var(--text); font-weight: 800;">${talentName}</h3>
-          <span style="font-size: 0.7rem; color: var(--text-muted);">${updateDate} 送信</span>
+          <h3 style="font-size: 1.3rem; margin: 2px 0 0 0; color: var(--text); font-weight: 800;">${escapeHtml(talentName)}</h3>
+          <span style="font-size: 0.7rem; color: var(--text-muted);">${escapeHtml(updateDate)} 送信</span>
         </div>
       </div>
       
@@ -1659,65 +1825,260 @@ function renderSurveyDetailHTML(talentName, updateDate, raw) {
         <h4 style="font-size: 1.05rem; color: var(--text); font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px;">01. 私のバイブル（人生の土台となった作品）</h4>
         
         <div style="margin-bottom: 18px;">
-          <h5 style="font-weight: 800; font-size: 0.88rem; color: var(--accent); margin-bottom:6px">🎬 映画部門: ${raw.bibleMovie || '-'}</h5>
+          <h5 style="font-weight: 800; font-size: 0.88rem; color: var(--accent); margin-bottom:6px">🎬 映画部門: ${escapeHtml(raw.bibleMovie) || '-'}</h5>
           <div style="font-size:0.75rem; color: var(--text-secondary); margin-bottom:6px"><strong>惹かれる要素:</strong> ${movieAspects || '-'}</div>
-          ${raw.bibleMovieAspectsOther ? `<div style="font-size:0.75rem; color: var(--text-secondary); margin-bottom:6px"><strong>その他要素:</strong> ${raw.bibleMovieAspectsOther}</div>` : ''}
-          <div style="font-size:0.85rem; white-space: pre-wrap; background: var(--bg-alt); border: 1.5px solid var(--border); padding: 12px; border-radius: 6px; color: var(--text-secondary); line-height: 1.5;">${raw.bibleMovieComment || '（未記入）'}</div>
+          ${raw.bibleMovieAspectsOther ? `<div style="font-size:0.75rem; color: var(--text-secondary); margin-bottom:6px"><strong>その他要素:</strong> ${escapeHtml(raw.bibleMovieAspectsOther)}</div>` : ''}
+          <div style="font-size:0.85rem; white-space: pre-wrap; background: var(--bg-alt); border: 1.5px solid var(--border); padding: 12px; border-radius: 6px; color: var(--text-secondary); line-height: 1.5;">${escapeHtml(raw.bibleMovieComment) || '（未記入）'}</div>
         </div>
         
         <div>
-          <h5 style="font-weight: 800; font-size: 0.88rem; color: var(--accent); margin-bottom:6px">📺 ドラマ部門: ${raw.bibleDrama || '-'}</h5>
+          <h5 style="font-weight: 800; font-size: 0.88rem; color: var(--accent); margin-bottom:6px">📺 ドラマ部門: ${escapeHtml(raw.bibleDrama) || '-'}</h5>
           <div style="font-size:0.75rem; color: var(--text-secondary); margin-bottom:6px"><strong>惹かれる要素:</strong> ${dramaAspects || '-'}</div>
-          ${raw.bibleDramaAspectsOther ? `<div style="font-size:0.75rem; color: var(--text-secondary); margin-bottom:6px"><strong>その他要素:</strong> ${raw.bibleDramaAspectsOther}</div>` : ''}
-          <div style="font-size:0.85rem; white-space: pre-wrap; background: var(--bg-alt); border: 1.5px solid var(--border); padding: 12px; border-radius: 6px; color: var(--text-secondary); line-height: 1.5;">${raw.bibleDramaComment || '（未記入）'}</div>
+          ${raw.bibleDramaAspectsOther ? `<div style="font-size:0.75rem; color: var(--text-secondary); margin-bottom:6px"><strong>その他要素:</strong> ${escapeHtml(raw.bibleDramaAspectsOther)}</div>` : ''}
+          <div style="font-size:0.85rem; white-space: pre-wrap; background: var(--bg-alt); border: 1.5px solid var(--border); padding: 12px; border-radius: 6px; color: var(--text-secondary); line-height: 1.5;">${escapeHtml(raw.bibleDramaComment) || '（未記入）'}</div>
         </div>
       </div>
       
       <!-- Section 2 -->
       <div class="preview-section" style="margin-bottom:28px; border-left:3px solid var(--accent); padding-left:15px">
         <h4 style="font-size: 1.05rem; color: var(--text); font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px;">02. 最近観て、心が動いた作品</h4>
-        <h5 style="font-weight: 800; font-size: 0.88rem; color: var(--accent); margin-bottom:6px">作品名: ${raw.recentTitle || '-'} （ジャンル: ${recentMedia}）</h5>
+        <h5 style="font-weight: 800; font-size: 0.88rem; color: var(--accent); margin-bottom:6px">作品名: ${escapeHtml(raw.recentTitle) || '-'} （ジャンル: ${recentMedia}）</h5>
         <div style="font-size:0.75rem; color: var(--text-secondary); margin-bottom:6px"><strong>動かされた点:</strong> ${recentAspects || '-'}</div>
-        <div style="font-size:0.85rem; white-space: pre-wrap; background: var(--bg-alt); border: 1.5px solid var(--border); padding: 12px; border-radius: 6px; color: var(--text-secondary); line-height: 1.5;">${raw.recentComment || '（未記入）'}</div>
+        <div style="font-size:0.85rem; white-space: pre-wrap; background: var(--bg-alt); border: 1.5px solid var(--border); padding: 12px; border-radius: 6px; color: var(--text-secondary); line-height: 1.5;">${escapeHtml(raw.recentComment) || '（未記入）'}</div>
       </div>
       
       <!-- Section 3 -->
       <div class="preview-section" style="margin-bottom:28px; border-left:3px solid var(--accent); padding-left:15px">
         <h4 style="font-size: 1.05rem; color: var(--text); font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px;">03. 目標とする・影響を受けた俳優</h4>
-        <h5 style="font-weight: 800; font-size: 0.88rem; color: var(--accent); margin-bottom:6px">俳優名: ${raw.targetActor || '-'}</h5>
+        <h5 style="font-weight: 800; font-size: 0.88rem; color: var(--accent); margin-bottom:6px">俳優名: ${escapeHtml(raw.targetActor) || '-'}</h5>
         <div style="font-size:0.75rem; color: var(--text-secondary); margin-bottom:6px"><strong>惹かれる要素:</strong> ${actorAspects || '-'}</div>
-        <div style="font-size:0.85rem; white-space: pre-wrap; background: var(--bg-alt); border: 1.5px solid var(--border); padding: 12px; border-radius: 6px; color: var(--text-secondary); line-height: 1.5;">${raw.actorComment || '（未記入）'}</div>
+        <div style="font-size:0.85rem; white-space: pre-wrap; background: var(--bg-alt); border: 1.5px solid var(--border); padding: 12px; border-radius: 6px; color: var(--text-secondary); line-height: 1.5;">${escapeHtml(raw.actorComment) || '（未記入）'}</div>
       </div>
       
       <!-- Section 4 -->
       <div class="preview-section" style="margin-bottom:28px; border-left:3px solid var(--accent); padding-left:15px">
         <h4 style="font-size: 1.05rem; color: var(--text); font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px;">04. 今、最も演じてみたい役柄・世界観</h4>
         <div style="font-size:0.75rem; color: var(--text-secondary); margin-bottom:6px"><strong>キャラクターの方向性:</strong> ${desiredRoles || '-'}</div>
-        ${raw.desiredRolesOther ? `<div style="font-size:0.75rem; color: var(--text-secondary); margin-bottom:6px"><strong>その他役柄:</strong> ${raw.desiredRolesOther}</div>` : ''}
-        <div style="font-size:0.85rem; white-space: pre-wrap; background: var(--bg-alt); border: 1.5px solid var(--border); padding: 12px; border-radius: 6px; color: var(--text-secondary); line-height: 1.5;">${raw.desiredComment || '（未記入）'}</div>
+        ${raw.desiredRolesOther ? `<div style="font-size:0.75rem; color: var(--text-secondary); margin-bottom:6px"><strong>その他役柄:</strong> ${escapeHtml(raw.desiredRolesOther)}</div>` : ''}
+        <div style="font-size:0.85rem; white-space: pre-wrap; background: var(--bg-alt); border: 1.5px solid var(--border); padding: 12px; border-radius: 6px; color: var(--text-secondary); line-height: 1.5;">${escapeHtml(raw.desiredComment) || '（未記入）'}</div>
       </div>
       
       <!-- Section 5 -->
-      <div class="preview-section" style="border-left:3px solid var(--accent); padding-left:15px">
+      <div class="preview-section" style="margin-bottom:28px; border-left:3px solid var(--accent); padding-left:15px">
         <h4 style="font-size: 1.05rem; color: var(--text); font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px;">05. 私を構成する3つの「偏愛」</h4>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
           <div style="background: var(--bg-alt); border: 1.5px solid var(--border); padding: 14px; border-radius: 6px;">
             <div style="font-weight:800; font-size:0.75rem; color:var(--accent); margin-bottom:6px; text-transform: uppercase; letter-spacing: 0.5px;">偏愛 1</div>
-            <div style="font-weight:800; font-size:0.9rem; margin-bottom:8px; color:var(--text);">${raw.love1 || '-'}</div>
-            <div style="font-size:0.78rem; color:var(--text-secondary); white-space:pre-wrap; line-height:1.4">${raw.love1Desc || ''}</div>
+            <div style="font-weight:800; font-size:0.9rem; margin-bottom:8px; color:var(--text);">${escapeHtml(raw.love1) || '-'}</div>
+            <div style="font-size:0.78rem; color:var(--text-secondary); white-space:pre-wrap; line-height:1.4">${escapeHtml(raw.love1Desc) || ''}</div>
           </div>
           <div style="background: var(--bg-alt); border: 1.5px solid var(--border); padding: 14px; border-radius: 6px;">
             <div style="font-weight:800; font-size:0.75rem; color:var(--accent); margin-bottom:6px; text-transform: uppercase; letter-spacing: 0.5px;">偏愛 2</div>
-            <div style="font-weight:800; font-size:0.9rem; margin-bottom:8px; color:var(--text);">${raw.love2 || '-'}</div>
-            <div style="font-size:0.78rem; color:var(--text-secondary); white-space:pre-wrap; line-height:1.4">${raw.love2Desc || ''}</div>
+            <div style="font-weight:800; font-size:0.9rem; margin-bottom:8px; color:var(--text);">${escapeHtml(raw.love2) || '-'}</div>
+            <div style="font-size:0.78rem; color:var(--text-secondary); white-space:pre-wrap; line-height:1.4">${escapeHtml(raw.love2Desc) || ''}</div>
           </div>
           <div style="background: var(--bg-alt); border: 1.5px solid var(--border); padding: 14px; border-radius: 6px;">
             <div style="font-weight:800; font-size:0.75rem; color:var(--accent); margin-bottom:6px; text-transform: uppercase; letter-spacing: 0.5px;">偏愛 3</div>
-            <div style="font-weight:800; font-size:0.9rem; margin-bottom:8px; color:var(--text);">${raw.love3 || '-'}</div>
-            <div style="font-size:0.78rem; color:var(--text-secondary); white-space:pre-wrap; line-height:1.4">${raw.love3Desc || ''}</div>
+            <div style="font-weight:800; font-size:0.9rem; margin-bottom:8px; color:var(--text);">${escapeHtml(raw.love3) || '-'}</div>
+            <div style="font-size:0.78rem; color:var(--text-secondary); white-space:pre-wrap; line-height:1.4">${escapeHtml(raw.love3Desc) || ''}</div>
           </div>
+        </div>
+      </div>
+
+      <!-- Section 6 -->
+      <div class="preview-section" style="border-left:3px solid var(--accent); padding-left:15px; page-break-inside: avoid;">
+        <h4 style="font-size: 1.05rem; color: var(--text); font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px;">06. 面談・同行でよく聞かれる質問（FAQ）</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
+          <div style="background: var(--bg-alt); border: 1.5px solid var(--border); padding: 12px; border-radius: 6px;">
+            <div style="font-weight:800; font-size:0.75rem; color:var(--accent); margin-bottom:4px;"><i class="fa-solid fa-location-dot"></i> 出身地・地元トーク</div>
+            <div style="font-size:0.85rem; color:var(--text);">${escapeHtml(raw.faqHometown) || '（未記入）'}</div>
+          </div>
+          <div style="background: var(--bg-alt); border: 1.5px solid var(--border); padding: 12px; border-radius: 6px;">
+            <div style="font-weight:800; font-size:0.75rem; color:var(--accent); margin-bottom:4px;"><i class="fa-solid fa-medal"></i> 特技・スポーツ・資格</div>
+            <div style="font-size:0.85rem; color:var(--text);">${escapeHtml(raw.faqSkills) || '（未記入）'}</div>
+          </div>
+          <div style="background: var(--bg-alt); border: 1.5px solid var(--border); padding: 12px; border-radius: 6px;">
+            <div style="font-weight:800; font-size:0.75rem; color:var(--accent); margin-bottom:4px;"><i class="fa-solid fa-fire"></i> 最近ハマっていること</div>
+            <div style="font-size:0.85rem; color:var(--text);">${escapeHtml(raw.faqRecentHobby) || '（未記入）'}</div>
+          </div>
+          <div style="background: var(--bg-alt); border: 1.5px solid var(--border); padding: 12px; border-radius: 6px;">
+            <div style="font-weight:800; font-size:0.75rem; color:var(--accent); margin-bottom:4px;"><i class="fa-solid fa-utensils"></i> 好きな食べ物・お店</div>
+            <div style="font-size:0.85rem; color:var(--text);">${escapeHtml(raw.faqFood) || '（未記入）'}</div>
+          </div>
+          <div style="background: var(--bg-alt); border: 1.5px solid var(--border); padding: 12px; border-radius: 6px;">
+            <div style="font-weight:800; font-size:0.75rem; color:var(--accent); margin-bottom:4px;"><i class="fa-solid fa-sun"></i> 休日の過ごし方</div>
+            <div style="font-size:0.85rem; color:var(--text);">${escapeHtml(raw.faqHoliday) || '（未記入）'}</div>
+          </div>
+          <div style="background: var(--bg-alt); border: 1.5px solid var(--border); padding: 12px; border-radius: 6px;">
+            <div style="font-weight:800; font-size:0.75rem; color:var(--accent); margin-bottom:4px;"><i class="fa-solid fa-handshake"></i> 共演してみたい人・出たい作品</div>
+            <div style="font-size:0.85rem; color:var(--text);">${escapeHtml(raw.faqDreamWork) || '（未記入）'}</div>
+          </div>
+        </div>
+        <div style="margin-top: 15px; background: var(--bg-alt); border: 1.5px solid var(--border); padding: 14px; border-radius: 6px;">
+          <div style="font-weight:800; font-size:0.75rem; color:var(--accent); margin-bottom:6px;"><i class="fa-solid fa-comment-dots"></i> 自己紹介の鉄板ネタ（30秒版）</div>
+          <div style="font-size:0.85rem; color:var(--text); white-space: pre-wrap; line-height: 1.5;">${escapeHtml(raw.faqIntro) || '（未記入）'}</div>
+        </div>
+        <div class="no-print-ng" style="margin-top: 15px; background: rgba(226,0,15,0.03); border: 1.5px dashed var(--accent); padding: 14px; border-radius: 6px;">
+          <div style="font-weight:800; font-size:0.75rem; color:var(--accent); margin-bottom:6px;"><i class="fa-solid fa-ban"></i> NG話題・触れてほしくないこと（社内共有のみ・印刷時非表示）</div>
+          <div style="font-size:0.85rem; color:var(--text);">${escapeHtml(raw.faqNgTopics) || '（特になし）'}</div>
         </div>
       </div>
     </div>
   `;
 }
+
+// ============================================================
+// 営業同行用ブリーフィング機能
+// ============================================================
+let activeBriefingData = null;
+
+function openBriefingModal(salesId) {
+  const salesItem = allSalesAttackData.find(d => String(d.ID || d.id || d.Row) === String(salesId));
+  if (!salesItem) {
+    alert("営業データが見つかりません。");
+    return;
+  }
+
+  // 提案タレントをパースする（カンマまたはスペース区切り）
+  const talentsStr = salesItem['提案タレント'] || '';
+  const talentNames = talentsStr.split(/[,，\s]+/).map(t => t.trim()).filter(t => t);
+
+  // マージ用のタレント回答データ（FAQ）を集約
+  const matchedSurveys = [];
+  talentNames.forEach(tName => {
+    const survey = surveyDataCache.find(s => s.talentName === tName);
+    if (survey) {
+      try {
+        const raw = JSON.parse(survey.rawData);
+        matchedSurveys.push({
+          talentName: tName,
+          updateDate: survey.updateDate,
+          faq: raw
+        });
+      } catch (e) {
+        console.error("Failed to parse rawData for " + tName, e);
+      }
+    }
+  });
+
+  activeBriefingData = {
+    sales: salesItem,
+    surveys: matchedSurveys
+  };
+
+  renderBriefingHTML();
+  document.getElementById('briefingModal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeBriefingModal() {
+  document.getElementById('briefingModal').classList.remove('show');
+  document.body.style.overflow = '';
+  activeBriefingData = null;
+}
+
+function printBriefing() {
+  if (!activeBriefingData) return;
+  window.print();
+}
+
+function renderBriefingHTML() {
+  const { sales, surveys } = activeBriefingData;
+  const contentEl = document.getElementById('briefingContent');
+  if (!contentEl) return;
+
+  // 営業情報のHTML組み立て
+  let salesInfoHTML = `
+    <div class="preview-section" style="margin-bottom:28px; border-left:3px solid var(--accent); padding-left:15px">
+      <h4 style="font-size: 1.05rem; color: var(--text); font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px;">📋 案件同行情報</h4>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; font-size: 0.85rem; color: var(--text-secondary);">
+        <div><strong>企業名/制作会社:</strong> ${escapeHtml(sales['社名'] || '-')} (${escapeHtml(sales['アプローチ先種別'] || '-')})</div>
+        <div><strong>アタック担当マネージャー:</strong> ${escapeHtml(sales['担当者名'] || '-')}</div>
+        <div><strong>次回ToDo:</strong> ${escapeHtml(sales['次回アクション予定日'] ? fmtDate(sales['次回アクション予定日']) + ': ' : '')}${escapeHtml(sales['次回アクション内容'] || '-')}</div>
+        <div><strong>提案タレント:</strong> ${sales['提案タレント'] ? sales['提案タレント'].split(',').map(t => `<span class="talent-badge-sm" style="background:${talentColor(t.trim())};margin-right:2px;">${escapeHtml(t.trim())}</span>`).join('') : '-'}</div>
+        <div><strong>アプローチ方法/媒体:</strong> ${escapeHtml(sales['アプローチ方法'] || '-')}</div>
+        <div><strong>進捗状況/ステータス:</strong> <span class="status-badge status-prep">${escapeHtml(sales['アタックステータス'] || '-')}</span></div>
+      </div>
+      <div style="margin-top: 15px; background: var(--bg-alt); border: 1.5px solid var(--border); padding: 14px; border-radius: 6px; font-size: 0.85rem;">
+        <div style="font-weight: 800; color: var(--accent); margin-bottom: 6px;">📌 案件メモ・進捗詳細</div>
+        <div style="white-space: pre-wrap; line-height: 1.5; color: var(--text-secondary);">${escapeHtml(sales['備考/メモ'] || '（未記入）')}</div>
+      </div>
+    </div>
+  `;
+
+  // タレントプロファイル（FAQ）のHTML組み立て
+  let talentSurveysHTML = '';
+  if (surveys.length === 0) {
+    talentSurveysHTML = `
+      <div style="text-align: center; padding: 30px; color: var(--text-muted); font-size: 0.9rem; border: 1.5px dashed var(--border); border-radius: 6px;">
+        ⚠️ 提案タレントのルーツヒアリングシート回答が登録されていません。
+      </div>
+    `;
+  } else {
+    talentSurveysHTML = surveys.map(({ talentName, updateDate, faq }) => {
+      return `
+        <div style="margin-bottom: 35px; border: 1.5px solid var(--border); border-radius: 8px; padding: 20px; background: var(--card-bg); page-break-inside: avoid;">
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid ${talentColor(talentName)}; padding-bottom:10px; margin-bottom:15px;">
+            <h3 style="font-size:1.1rem; font-weight:800; color: var(--text); display:flex; align-items:center; gap:8px;">
+              <span class="talent-badge" style="background:${talentColor(talentName)}; color:white; padding:4px 10px; border-radius:4px; font-size:0.9rem;">${escapeHtml(talentName)}</span>
+              <span>の想定質問・FAQプロファイル</span>
+            </h3>
+            <span style="font-size:0.75rem; color:var(--text-muted);">${escapeHtml(updateDate)} 更新</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-bottom: 15px;">
+            <div style="background: var(--bg-alt); border: 1px solid var(--border); padding: 12px; border-radius: 6px;">
+              <div style="font-weight:800; font-size:0.75rem; color:var(--accent); margin-bottom:4px;"><i class="fa-solid fa-location-dot"></i> 出身地・地元トーク</div>
+              <div style="font-size:0.85rem; color:var(--text);">${escapeHtml(faq.faqHometown) || '（未記入）'}</div>
+            </div>
+            <div style="background: var(--bg-alt); border: 1px solid var(--border); padding: 12px; border-radius: 6px;">
+              <div style="font-weight:800; font-size:0.75rem; color:var(--accent); margin-bottom:4px;"><i class="fa-solid fa-medal"></i> 特技・スポーツ・資格</div>
+              <div style="font-size:0.85rem; color:var(--text);">${escapeHtml(faq.faqSkills) || '（未記入）'}</div>
+            </div>
+            <div style="background: var(--bg-alt); border: 1px solid var(--border); padding: 12px; border-radius: 6px;">
+              <div style="font-weight:800; font-size:0.75rem; color:var(--accent); margin-bottom:4px;"><i class="fa-solid fa-fire"></i> 最近ハマっていること</div>
+              <div style="font-size:0.85rem; color:var(--text);">${escapeHtml(faq.faqRecentHobby) || '（未記入）'}</div>
+            </div>
+            <div style="background: var(--bg-alt); border: 1px solid var(--border); padding: 12px; border-radius: 6px;">
+              <div style="font-weight:800; font-size:0.75rem; color:var(--accent); margin-bottom:4px;"><i class="fa-solid fa-utensils"></i> 好きな食べ物・お店</div>
+              <div style="font-size:0.85rem; color:var(--text);">${escapeHtml(faq.faqFood) || '（未記入）'}</div>
+            </div>
+            <div style="background: var(--bg-alt); border: 1px solid var(--border); padding: 12px; border-radius: 6px;">
+              <div style="font-weight:800; font-size:0.75rem; color:var(--accent); margin-bottom:4px;"><i class="fa-solid fa-sun"></i> 休日の過ごし方</div>
+              <div style="font-size:0.85rem; color:var(--text);">${escapeHtml(faq.faqHoliday) || '（未記入）'}</div>
+            </div>
+            <div style="background: var(--bg-alt); border: 1px solid var(--border); padding: 12px; border-radius: 6px;">
+              <div style="font-weight:800; font-size:0.75rem; color:var(--accent); margin-bottom:4px;"><i class="fa-solid fa-handshake"></i> 共演してみたい人・出たい作品</div>
+              <div style="font-size:0.85rem; color:var(--text);">${escapeHtml(faq.faqDreamWork) || '（未記入）'}</div>
+            </div>
+          </div>
+          <div style="background: var(--bg-alt); border: 1px solid var(--border); padding: 14px; border-radius: 6px; margin-bottom: 15px;">
+            <div style="font-weight:800; font-size:0.75rem; color:var(--accent); margin-bottom:6px;"><i class="fa-solid fa-comment-dots"></i> 自己紹介の鉄板ネタ（30秒版）</div>
+            <div style="font-size:0.85rem; color:var(--text); white-space: pre-wrap; line-height: 1.5;">${escapeHtml(faq.faqIntro) || '（未記入）'}</div>
+          </div>
+          <div class="no-print-ng" style="background: rgba(226,0,15,0.02); border: 1.5px dashed var(--accent); padding: 14px; border-radius: 6px;">
+            <div style="font-weight:800; font-size:0.75rem; color:var(--accent); margin-bottom:6px;"><i class="fa-solid fa-ban"></i> NG話題・触れてほしくないこと（社内共有のみ・印刷時非表示）</div>
+            <div style="font-size:0.85rem; color:var(--text);">${escapeHtml(faq.faqNgTopics) || '（特になし）'}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  contentEl.innerHTML = `
+    <div style="padding: 0 20px;">
+      <div style="text-align: center; margin-bottom: 25px;">
+        <h2 style="font-size: 1.4rem; font-weight: 800; margin: 0 0 5px 0; color:var(--text);">営業同行ブリーフィング資料</h2>
+        <span style="font-size: 0.75rem; color: var(--text-muted);">案件情報 ✕ タレント想定問答 FAQ</span>
+      </div>
+      ${salesInfoHTML}
+      <div style="margin-top: 20px;">
+        <h4 style="font-size: 1.05rem; color: var(--text); font-weight: 800; margin-bottom: 15px; border-bottom: 2px solid var(--accent); padding-bottom: 6px;">
+          👥 同行キャストプロフィール
+        </h4>
+        ${talentSurveysHTML}
+      </div>
+    </div>
+  `;
+}
+

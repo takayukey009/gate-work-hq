@@ -21,14 +21,42 @@ const DRIVE_FOLDER_ID = '1EyDWtQ_yBsGMpsw0ZKGsImFgVHjQOAhd'; // GATE_オーデ�
 const NANDEMO_FOLDER_ID = '1eN0gfw6f1DjFvdVoSYPrxMKxQd4t1of2'; // 何でもフォルダ
 
 // ============================================================
+// Access Control (Token Validation)
+// ============================================================
+function checkToken(e, data) {
+  const expected = PropertiesService.getScriptProperties().getProperty('API_TOKEN');
+  if (!expected) return true; // 未設定時は素通り
+  const got = (data && data.token) || (e && e.parameter && e.parameter.token) || '';
+  return got === expected;
+}
+
+function forbidden() {
+  return ContentService
+    .createTextOutput(JSON.stringify({ success: false, error: 'unauthorized' }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ============================================================
 // POST: 新規オーディション追加
 // ============================================================
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
+    if (data.sheetType !== 'talent_survey' && !checkToken(null, data)) return forbidden();
+
+    // 個人キーが送られてきた場合は本人性を検証し、名前はサーバ側で確定する（なりすまし・上書き事故防止）
+    if (data.sheetType === 'talent_survey' && data.surveyKey) {
+      const talent = findTalentByKey(data.surveyKey);
+      if (!talent) {
+        return ContentService
+          .createTextOutput(JSON.stringify({ success: false, error: 'invalid key' }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+      data.talentName = talent.name; // クライアントの申告値より優先
+    }
 
     // カレンダー操作の判定を最初に行う（スプレッドシート操作でのエラー回避）
-    if (data.action === 'create_calendar_event' || data.action === 'get_calendar_free_busy' || data.action === 'create_allday_event') {
+    if (data.action === 'create_calendar_event' || data.action === 'get_calendar_free_busy' || data.action === 'create_allday_event' || data.action === 'delete_calendar_events') {
       let result;
       if (data.action === 'create_calendar_event') {
         result = createCalendarEvent(data.calendarId, data.summary, data.startTime, data.endTime, data.description);
@@ -36,6 +64,8 @@ function doPost(e) {
         result = getCalendarFreeBusy(data.calendarId, data.start, data.end);
       } else if (data.action === 'create_allday_event') {
         result = createAllDayEvent(data.calendarId, data.summary, data.date);
+      } else if (data.action === 'delete_calendar_events') {
+        result = deleteCalendarEvents(data.calendarId, data.titlePrefix);
       }
       return ContentService
         .createTextOutput(JSON.stringify(result))
@@ -138,15 +168,70 @@ function doPost(e) {
     
     const sheet = ss.getSheetByName(SHEET_NAME);
     
-    // 次のIDを取得
-    const lastRow = sheet.getLastRow();
-    const nextId = lastRow > 1 ? Number(sheet.getRange(lastRow, 1).getValue()) + 1 : 1;
-    
     // ファイルがBase64で送られてきた場合、Driveに保存
     let fileUrl = data.fileUrl || '';
     if (data.fileBase64 && data.fileName) {
       fileUrl = saveFileToDrive(data.fileBase64, data.fileName, data.fileMimeType);
     }
+    
+    const isUpdate = (data.action === 'update' || (data.id && data.id !== 'undefined'));
+    if (isUpdate) {
+      const targetId = String(data.id);
+      const lastRow = sheet.getLastRow();
+      let foundRow = -1;
+      if (lastRow > 1) {
+        const idValues = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+        for (let i = 0; i < idValues.length; i++) {
+          if (String(idValues[i][0]) === targetId) {
+            foundRow = i + 2;
+            break;
+          }
+        }
+      }
+      if (foundRow === -1) {
+        throw new Error('更新対象のIDが見つかりません: ' + targetId);
+      }
+      
+      const existingData = sheet.getRange(foundRow, 1, 1, 17).getValues()[0];
+      let origRegDate = today;
+      if (existingData[12]) {
+        try {
+          origRegDate = Utilities.formatDate(new Date(existingData[12]), 'Asia/Tokyo', 'yyyy/MM/dd');
+        } catch(e) {
+          origRegDate = String(existingData[12]);
+        }
+      }
+      const finalFileUrl = fileUrl || existingData[14] || '';
+      
+      const rowData = [
+        targetId,
+        data.talentName || '',
+        data.type || 'オーディション',
+        data.auditionName || '',
+        data.genre || '',
+        data.deadline || '',
+        data.auditionDate || '',
+        data.status || '情報収集',
+        data.owner || 'マネージャー',
+        data.action || '',
+        data.result || '未定',
+        data.notes || '',
+        origRegDate,
+        today,
+        finalFileUrl,
+        data.resultDate || '',
+        data.releaseDate || ''
+      ];
+      sheet.getRange(foundRow, 1, 1, rowData.length).setValues([rowData]);
+      
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: true, id: targetId, fileUrl: finalFileUrl }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // 次のIDを取得
+    const lastRow = sheet.getLastRow();
+    const nextId = lastRow > 1 ? Number(sheet.getRange(lastRow, 1).getValue()) + 1 : 1;
     
     // スプレッドシートに追記
     sheet.appendRow([
@@ -187,23 +272,44 @@ const SALES_SPREADSHEET_ID = '107oRwGTZM7-_OKOwjgw_efgXYDQJTarm6Da1SsJjVOg';
 const SALES_SHEET_NAME = '2025年7月~2026年6月';
 const MANAGED_TALENTS = ['谷口彩菜','寺崎ひな','小久保宏紀','島田和奏','中塚智','太田陽菜','相馬寿樹'];
 
-// タレント別カレンダーID
-const TALENT_CALENDARS = {
-  '谷口彩菜': 'ayana.taniguchi@gate-agency.com',
-  '寺崎ひな': 'hina.terasaki@gate-agency.com',
-  '小久保宏紀': 'hiroki.kokubo@gate-agency.com',
-  '島田和奏': 'wakana.shimada@gate-agency.com',
-  '中塚智': 'satoshi.nakatsuka@gate-agency.com',
-  '太田陽菜': 'hina.ota@gate-agency.com',
-  '相馬寿樹': 'toshiki.soma@gate-agency.com'
-};
+// タレント別カレンダーIDをマスタから動的生成
+function getTalentCalendars() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName('タレントマスタ');
+  if (!sheet) {
+    getTalentMasterInternal();
+    sheet = ss.getSheetByName('タレントマスタ');
+  }
+  
+  const values = sheet.getDataRange().getValues();
+  const cals = {};
+  for (let i = 1; i < values.length; i++) {
+    const row = values[i];
+    const name = String(row[0] || '').trim();
+    const calId = String(row[3] || '').trim();
+    const status = String(row[4] || '在籍').trim();
+    if (name && calId && status === '在籍') {
+      cals[name] = calId;
+    }
+  }
+  return cals;
+}
 
 function doGet(e) {
   const action = (e && e.parameter && e.parameter.action) || '';
   
+  const publicActions = ['', 'talents'];
+  if (!publicActions.includes(action) && !checkToken(e, null)) return forbidden();
+  
   // パラメータが無い（＝タレントがただURLを開いた）場合は入力フォームを表示する
   if (!action) {
-    return HtmlService.createHtmlOutputFromFile('talent_survey')
+    const tpl = HtmlService.createTemplateFromFile('talent_survey');
+    tpl.webAppUrl = ScriptApp.getService().getUrl();
+    const talent = findTalentByKey(e && e.parameter && e.parameter.k);
+    tpl.prefillName = talent ? talent.name : '';
+    tpl.prefillKey = talent ? String(e.parameter.k) : '';
+    tpl.prefillRaw = talent ? getSurveyRawByName(talent.name) : '{}';
+    return tpl.evaluate()
       .setTitle("ACTOR'S ROOT - 俳優ルーツ・ヒアリングシート")
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
@@ -231,6 +337,10 @@ function doGet(e) {
   
   if (action === 'survey') {
     return getSurveyData();
+  }
+  
+  if (action === 'talents') {
+    return getTalentMaster();
   }
   
   return ContentService
@@ -350,10 +460,11 @@ function getCalendarData(e) {
       : new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
     
     const allEvents = [];
+    const calendars = getTalentCalendars();
     
-    for (var talent in TALENT_CALENDARS) {
+    for (var talent in calendars) {
       try {
-        var cal = CalendarApp.getCalendarById(TALENT_CALENDARS[talent]);
+        var cal = CalendarApp.getCalendarById(calendars[talent]);
         if (!cal) continue;
         var events = cal.getEvents(startDate, endDate);
         for (var i = 0; i < events.length; i++) {
@@ -951,8 +1062,42 @@ function createAllDayEvent(calendarId, summary, date) {
     const cal = CalendarApp.getCalendarById(calendarId);
     if (!cal) return { success: false, error: 'カレンダーが見つかりません: ' + calendarId };
     
-    const event = cal.createAllDayEvent(summary, new Date(date));
+    const parts = String(date).split(/[\/\-]/);
+    let d;
+    if (parts.length === 3) {
+      d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), 9, 0, 0);
+    } else {
+      d = new Date(date);
+      d.setHours(9, 0, 0, 0);
+    }
+    
+    const event = cal.createAllDayEvent(summary, d);
     return { success: true, eventId: event.getId() };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * カレンダーの特定のタイトルを含むイベントを一括削除
+ */
+function deleteCalendarEvents(calendarId, titlePart) {
+  try {
+    const cal = CalendarApp.getCalendarById(calendarId);
+    if (!cal) return { success: false, error: 'カレンダーが見つかりません: ' + calendarId };
+    
+    // 2026/07/01 ～ 2026/12/31 の範囲のイベントを取得して削除（ひかりと大地は7月〜10月撮影）
+    const start = new Date("2026-07-01T00:00:00");
+    const end = new Date("2026-12-31T23:59:59");
+    const events = cal.getEvents(start, end);
+    let deletedCount = 0;
+    events.forEach(ev => {
+      if (ev.getTitle().indexOf(titlePart) !== -1) {
+        ev.deleteEvent();
+        deletedCount++;
+      }
+    });
+    return { success: true, deletedCount: deletedCount };
   } catch (e) {
     return { success: false, error: e.message };
   }
@@ -976,5 +1121,142 @@ function getCalendarFreeBusy(calendarId, start, end) {
     return { success: true, busy: busy };
   } catch (e) {
     return { success: false, error: e.message };
+  }
+}
+
+// ============================================================
+// タレントマスタ取得・自動生成
+// ============================================================
+function getTalentMasterInternal() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName('talents');
+  if (!sheet) {
+    sheet = ss.insertSheet('talents');
+    sheet.appendRow(['名前', '色', 'アイコン', 'カレンダーID', '在籍']);
+    const initialTalents = [
+      ['谷口彩菜', '#FFECEF', '🌸', 'ayana.taniguchi@gate-agency.com', '在籍'],
+      ['寺崎ひな', '#FFFBEA', '⭐', 'hina.terasaki@gate-agency.com', '在籍'],
+      ['小久保宏紀', '#EBF5FF', '🎭', 'hiroki.kokubo@gate-agency.com', '在籍'],
+      ['島田和奏', '#EDFBEF', '🌟', 'wakana.shimada@gate-agency.com', '在籍'],
+      ['中塚智', '#F5F3FF', '🎬', 'satoshi.nakatsuka@gate-agency.com', '在籍'],
+      ['太田陽菜', '#FFF8E1', '🌻', 'hina.ota@gate-agency.com', '在籍'],
+      ['吉富千桜', '#FFF5F5', '🍒', 'chio.yoshitomi@gate-agency.com', '在籍'],
+      ['相馬寿樹', '#F3F4F6', '👤', 'toshiki.soma@gate-agency.com', '在籍']
+    ];
+    initialTalents.forEach(function(row) {
+      sheet.appendRow(row);
+    });
+    sheet.getRange(1, 1, 1, 5).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+  return sheet.getDataRange().getValues();
+}
+
+function getTalentMaster() {
+  try {
+    const values = getTalentMasterInternal();
+    const list = [];
+    for (let i = 1; i < values.length; i++) {
+      const row = values[i];
+      const name = String(row[0] || '').trim();
+      if (!name) continue;
+      
+      const status = String(row[4] || '在籍').trim();
+      if (status !== '在籍') continue;
+      
+      list.push({
+        name: name,
+        color: String(row[1] || '#888').trim(),
+        icon: String(row[2] || '👤').trim()
+      });
+    }
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: true, talents: list }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: false, error: error.message }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// ============================================================
+// P8: サーベイ個人キー
+// ============================================================
+
+/** マスタの6列目「フォームキー」が空の行にランダムキーを発行する。手動で1回実行 or タレント追加時に再実行 */
+function generateSurveyKeys() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('talents');
+  if (!sheet) return;
+  // ヘッダーに「フォームキー」が無ければ追加
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  let keyCol = headers.indexOf('フォームキー') + 1;
+  if (keyCol === 0) {
+    keyCol = headers.length + 1;
+    sheet.getRange(1, keyCol).setValue('フォームキー').setFontWeight('bold');
+  }
+  const lastRow = sheet.getLastRow();
+  const webAppUrl = ScriptApp.getService().getUrl();
+  const lines = [];
+  for (let r = 2; r <= lastRow; r++) {
+    const name = sheet.getRange(r, 1).getValue();
+    if (!name) continue;
+    let key = sheet.getRange(r, keyCol).getValue();
+    if (!key) {
+      key = Utilities.getUuid().replace(/-/g, '').substring(0, 16);
+      sheet.getRange(r, keyCol).setValue(key);
+    }
+    lines.push(name + ': ' + webAppUrl + '?k=' + key);
+  }
+  Logger.log('=== 個人URL一覧（各タレントにLINEで送付） ===\n' + lines.join('\n'));
+}
+
+/** キーからタレント行を引く。見つからなければ null */
+function findTalentByKey(key) {
+  if (!key) return null;
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('talents');
+  if (!sheet) return null;
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const keyCol = headers.indexOf('フォームキー');
+  if (keyCol === -1) return null;
+  const values = sheet.getRange(2, 1, Math.max(sheet.getLastRow() - 1, 1), sheet.getLastColumn()).getValues();
+  for (let i = 0; i < values.length; i++) {
+    if (String(values[i][keyCol]) === String(key)) {
+      return { name: values[i][0] };
+    }
+  }
+  return null;
+}
+
+/** タレント名から送信済みサーベイのRAWデータ(JSON文字列)を返す。無ければ空オブジェクト文字列 */
+function getSurveyRawByName(name) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('talent_survey');
+  if (!sheet || sheet.getLastRow() < 2) return '{}';
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0].map(String);
+  const nameCol = headers.indexOf('タレント名');
+  const rawCol = headers.indexOf('RAWデータ');
+  if (nameCol === -1 || rawCol === -1) return '{}';
+  for (let i = values.length - 1; i >= 1; i--) { // 後ろから＝最新
+    if (String(values[i][nameCol]) === String(name)) {
+      return String(values[i][rawCol] || '{}');
+    }
+  }
+  return '{}';
+}
+
+// ============================================================
+// HtmlServiceからの直接呼び出し用（CORS回避のため google.script.run を使用）
+// ============================================================
+function submitSurveyDataFromHtml(payloadStr) {
+  try {
+    const e = { postData: { contents: payloadStr } };
+    const response = doPost(e);
+    return JSON.parse(response.getContent());
+  } catch (err) {
+    return { success: false, error: err.message };
   }
 }

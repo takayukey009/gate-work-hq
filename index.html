@@ -46,6 +46,10 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 <span>カレンダー</span>
             </a>
+            <a href="#" class="nav-item" data-section="survey" id="nav-survey">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                <span>ルーツシート</span>
+            </a>
             <a href="#" class="nav-item" data-section="stats" id="nav-stats">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
                 <span>統計</span>
@@ -389,12 +393,27 @@
                                     <th>ステータス</th>
                                     <th>次回ToDo</th>
                                     <th>備考</th>
+                                    <th>アクション</th>
                                 </tr>
                             </thead>
                             <tbody id="salesBody"></tbody>
                         </table>
                     </div>
                 </div>
+            </div>
+        </section>
+
+        <!-- ===== SURVEY ===== -->
+        <section class="content-section" id="section-survey">
+            <div class="section-toolbar">
+                <div class="search-box-list">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" placeholder="タレント名で検索..." id="surveySearch">
+                </div>
+            </div>
+            
+            <div class="survey-grid" id="surveyList">
+                <div class="news-loading">📊 アンケート回答を読み込み中...</div>
             </div>
         </section>
     </main>
@@ -408,7 +427,7 @@
     <div class="modal-overlay" id="addModal">
         <div class="modal">
             <div class="modal-header">
-                <h2>＋ 案件追加</h2>
+                <h2 id="modalTitle">＋ 案件追加</h2>
                 <button class="modal-close" onclick="closeAddModal()">✕</button>
             </div>
             <form id="addForm" onsubmit="return handleAddSubmit(event)">
@@ -646,6 +665,50 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- アンケート詳細モーダル -->
+    <div class="modal-overlay" id="surveyDetailModal">
+        <div class="modal modal-large" style="max-width: 900px; width: 90%;">
+            <div class="modal-header" style="border-bottom: 2px solid var(--accent); padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="font-family: 'Inter', sans-serif; font-size: 1.3rem; font-weight: 700; color: var(--accent); line-height: 1.1;">ACTOR'S ROOT</span>
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">回答詳細</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <button class="btn btn-secondary" onclick="printSurveyDetail()" style="padding: 6px 12px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+                        <span>PDF・印刷</span>
+                    </button>
+                    <button class="modal-close" onclick="closeSurveyDetailModal()" style="position:static; background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
+                </div>
+            </div>
+            <div class="modal-body print-survey-body" id="surveyDetailContent" style="max-height: 70vh; overflow-y: auto; padding: 20px 0;">
+                <!-- JSで回答内容を美しく整形して流し込む -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 同行用ブリーフィングモーダル -->
+    <div class="modal-overlay" id="briefingModal">
+        <div class="modal modal-large" style="max-width: 900px; width: 90%;">
+            <div class="modal-header" style="border-bottom: 2px solid var(--accent); padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="font-family: 'Inter', sans-serif; font-size: 1.3rem; font-weight: 700; color: var(--accent); line-height: 1.1;">SALES BRIEFING</span>
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">同行ブリーフィング資料</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <button class="btn btn-secondary" onclick="printBriefing()" style="padding: 6px 12px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+                        <span>PDF・印刷</span>
+                    </button>
+                    <button class="modal-close" onclick="closeBriefingModal()" style="position:static; background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
+                </div>
+            </div>
+            <div class="modal-body print-briefing-body" id="briefingContent" style="max-height: 70vh; overflow-y: auto; padding: 20px 0;">
+                <!-- JSでアタック内容とタレントFAQをマージして流し込む -->
+            </div>
         </div>
     </div>
 
