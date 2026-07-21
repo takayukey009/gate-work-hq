@@ -848,7 +848,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ===== GAS WebApp URL =====
 // デプロイ後にここにURLを設定してください
-const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwM2FbBXA6NEnAowfdg4ABYAJPOX6D___Wh-eMVFqO5Cu8KUsjMfGXtgC6BiR0t6utS7A/exec';
+const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwpOLKe0k8PoJEd6Hy1xTIQVLUB1CEVQGh7Ed_Fcixkby78qstwZP2DT7_Golf-6Ae8ig/exec';
 const API_TOKEN = 'gate_dashboard_api_token_secret_2026';
 
 function hasGasUrl() {

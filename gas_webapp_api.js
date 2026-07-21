@@ -1197,7 +1197,7 @@ function generateSurveyKeys() {
     sheet.getRange(1, keyCol).setValue('フォームキー').setFontWeight('bold');
   }
   const lastRow = sheet.getLastRow();
-  const webAppUrl = ScriptApp.getService().getUrl();
+  const webAppUrl = 'https://script.google.com/macros/s/AKfycbwpOLKe0k8PoJEd6Hy1xTIQVLUB1CEVQGh7Ed_Fcixkby78qstwZP2DT7_Golf-6Ae8ig/exec';
   const lines = [];
   for (let r = 2; r <= lastRow; r++) {
     const name = sheet.getRange(r, 1).getValue();
