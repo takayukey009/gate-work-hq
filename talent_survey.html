@@ -1137,12 +1137,22 @@
             const recentMediaVal = document.querySelector('input[name="recentMedia"]:checked')?.value;
             if (recentMediaVal) data['recentMedia'] = recentMediaVal;
 
-            localStorage.setItem('gate_actors_root_data', JSON.stringify(data));
+            try {
+                localStorage.setItem('gate_actors_root_data', JSON.stringify(data));
+            } catch(e) {
+                console.warn('LocalStorage not available');
+            }
             showIndicatorState('saved');
+            return data;
         }
 
         function loadDataFromLocalStorage() {
-            const raw = localStorage.getItem('gate_actors_root_data');
+            let raw = null;
+            try {
+                raw = localStorage.getItem('gate_actors_root_data');
+            } catch(e) {
+                console.warn('LocalStorage not available');
+            }
             if (!raw) return;
 
             try {
@@ -1205,14 +1215,54 @@
                 nameEl.style.opacity = '0.8';
             }
 
-            const localRaw = localStorage.getItem('gate_actors_root_data');
+            let localRaw = null;
+            try {
+                localRaw = localStorage.getItem('gate_actors_root_data');
+            } catch(e) {
+                console.warn('LocalStorage not available');
+            }
+            
             if (PREFILL_NAME && Object.keys(PREFILL_RAW).length && !localRaw) {
                 // この端末に下書きが無い → サーバの送信済み回答を復元
-                localStorage.setItem('gate_actors_root_data', JSON.stringify(PREFILL_RAW));
+                try {
+                    localStorage.setItem('gate_actors_root_data', JSON.stringify(PREFILL_RAW));
+                } catch(e) {}
                 setTimeout(() => showToast('前回送信した回答を読み込みました。修正して再送信できます。'), 500);
             }
 
             loadDataFromLocalStorage();
+            
+            // If localStorage is blocked but we have prefill data, populate it directly
+            if (!localRaw && PREFILL_NAME && Object.keys(PREFILL_RAW).length) {
+                try {
+                    localStorage.setItem('temp_data', 'test');
+                    localStorage.removeItem('temp_data');
+                } catch(e) {
+                    // LocalStorage is strictly blocked, load prefill directly
+                    const data = PREFILL_RAW;
+                    inputIds.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el && data[id] !== undefined) {
+                            el.value = data[id];
+                            el.dispatchEvent(new Event('input'));
+                        }
+                    });
+                    const checkboxGroups = ['bibleMovieAspects', 'bibleDramaAspects', 'recentAspects', 'actorAspects', 'desiredRoles'];
+                    checkboxGroups.forEach(groupName => {
+                        if (data[groupName]) {
+                            data[groupName].forEach(val => {
+                                const chk = document.querySelector(`input[name="${groupName}"][value="${val}"]`);
+                                if (chk) chk.checked = true;
+                            });
+                        }
+                    });
+                    if (data['recentMedia']) {
+                        const rad = document.querySelector(`input[name="recentMedia"][value="${data['recentMedia']}"]`);
+                        if (rad) rad.checked = true;
+                    }
+                }
+            }
+
             loadTalentOptions();
 
             // 端末に古い下書きが残っている場合に備え、手動で送信済み回答を読み直すボタンを有効化
@@ -1236,7 +1286,9 @@
 
         function reloadFromServer() {
             if (!confirm('この端末の下書きを破棄して、前回送信した回答を読み込みますか？')) return;
-            localStorage.setItem('gate_actors_root_data', JSON.stringify(PREFILL_RAW));
+            try {
+                localStorage.setItem('gate_actors_root_data', JSON.stringify(PREFILL_RAW));
+            } catch(e) {}
             loadDataFromLocalStorage();
             showToast('送信済みの回答を読み込みました。');
         }
@@ -1305,17 +1357,14 @@
                 return;
             }
 
-            // まずローカルストレージに最新状態を保存
-            saveDataToLocalStorage();
+            // まずローカルストレージに最新状態を保存（保存したデータをそのまま取得）
+            const localData = saveDataToLocalStorage();
 
             // 送信ボタンのローディング状態
             const btnSubmit = document.getElementById('btnSubmit');
             const originalHTML = btnSubmit.innerHTML;
             btnSubmit.disabled = true;
             btnSubmit.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>送信中...</span>';
-
-            const localRaw = localStorage.getItem('gate_actors_root_data');
-            const localData = localRaw ? JSON.parse(localRaw) : {};
 
             const payload = {
                 sheetType: "talent_survey",
