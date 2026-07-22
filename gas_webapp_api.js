@@ -56,7 +56,7 @@ function doPost(e) {
     }
 
     // カレンダー操作の判定を最初に行う（スプレッドシート操作でのエラー回避）
-    if (data.action === 'create_calendar_event' || data.action === 'get_calendar_free_busy' || data.action === 'create_allday_event' || data.action === 'delete_calendar_events') {
+    if (data.action === 'create_calendar_event' || data.action === 'get_calendar_free_busy' || data.action === 'create_allday_event' || data.action === 'delete_calendar_events' || data.action === 'export_obsidian') {
       let result;
       if (data.action === 'create_calendar_event') {
         result = createCalendarEvent(data.calendarId, data.summary, data.startTime, data.endTime, data.description);
@@ -66,6 +66,13 @@ function doPost(e) {
         result = createAllDayEvent(data.calendarId, data.summary, data.date);
       } else if (data.action === 'delete_calendar_events') {
         result = deleteCalendarEvents(data.calendarId, data.titlePrefix);
+      } else if (data.action === 'export_obsidian') {
+        if (typeof exportVaultToObsidian === 'function') {
+          exportVaultToObsidian();
+          result = { success: true, message: 'Obsidian sync completed' };
+        } else {
+          result = { success: false, error: 'exportVaultToObsidian function not found' };
+        }
       }
       return ContentService
         .createTextOutput(JSON.stringify(result))
