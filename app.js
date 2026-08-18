@@ -1877,6 +1877,10 @@ async function handleSalesAddSubmit(e) {
 }
 
 // ===== Survey (タレントアンケート) =====
+let surveyDataCache = [];
+let surveySearchQuery = '';
+let activeSurveyData = null; // 現在モーダルで開いているデータ
+
 // タレント名の正規化マップ（苗字のみをフルネームに統一）
 function normalizeTalentFullName(name) {
   if (!name) return '';
