@@ -15,6 +15,117 @@ const GENRE_ICONS = {'映画':'🎬','ドラマ':'📺','舞台':'🎭','CM':'�
 const TYPE_ICONS = {'オーディション':'🎤','オファー':'📩','レギュラー':'📺','イベント':'🎪','撮影':'📸','その他':'📋','営業':'💼'};
 const TYPE_COLORS = {'オーディション':'#e2000f','オファー':'#10B981','レギュラー':'#3B82F6','イベント':'#F59E0B','撮影':'#8B5CF6','その他':'#6B7280','営業':'#10B981'};
 
+// ===== タレント宣材・提案用素材マスター =====
+const TALENT_ASSETS = {
+  '谷口彩菜': {
+    name: '谷口彩菜',
+    furigana: 'たにぐち あやな',
+    age: 27,
+    birthday: '1999/03/02',
+    bornIn: '京都府',
+    height: '162cm',
+    skills: '激辛（蒙古タンメン中本 北極の10倍）',
+    hobbies: 'お菓子作り、コスプレ、すみっコぐらしのグッズ集め、競技ポーカー',
+    officialUrl: 'https://gateagency.jp/talent/ayanataniguchi/',
+    profilePdf: 'https://drive.google.com/file/d/13-tbisLdqe1jVH_w9GS-FfcXbQlcRTv8/view?usp=drive_link',
+    photosFolder: 'https://drive.google.com/drive/folders/1lUxAmoQNmoDv8vRCJdnbE52u-Xd-NhvJ?usp=sharing',
+    reels: [
+      { title: '「東京彼女」26年3月号', url: 'https://youtu.be/57XiYmhbS0E?si=se0oaeCICQ1-rwO4' },
+      { title: '「パトロンデート」/ミリオン', url: 'https://youtube.com/shorts/vTVJeDFeMCc?si=uFAfmz8Ir9OJOWju' },
+      { title: '「心恋」/テラードラマ', url: 'https://youtube.com/shorts/XP5YK-IL84o?si=UdXOdq1qH4XoVf-k' },
+      { title: '「オープンマリッジ」ごっこ倶楽部', url: 'https://youtube.com/shorts/r3j9uaJs3zM?si=vGYLP7sEepfV5hvM' }
+    ],
+    mainReel: 'https://youtu.be/57XiYmhbS0E?si=se0oaeCICQ1-rwO4',
+    competitor: 'なし（現在契約中の競合なし）'
+  },
+  '島田和奏': {
+    name: '島田和奏',
+    furigana: 'しまだ わかな',
+    age: 27,
+    birthday: '1999/07/06',
+    bornIn: '秋田県',
+    height: '161cm',
+    skills: '剣道(初段), 民謡, 肩が柔らかい',
+    license: '美容師免許, メイク検定3級, 色彩検定3級, 剣道初段',
+    hobbies: '演歌を聴く, 大衆演劇を見に行く',
+    officialUrl: 'https://gateagency.jp/talent/wakanashimada/',
+    profilePdf: 'https://drive.google.com/file/d/1aUPqTVDQzmYVScW4KYcHFK3lQXKycg0h/view?usp=drive_link',
+    photosFolder: 'https://drive.google.com/drive/folders/1lUxAmoQNmoDv8vRCJdnbE52u-Xd-NhvJ?usp=sharing',
+    reels: [
+      { title: '出演映像リール', url: 'https://youtu.be/X_RS0SwuSDs?si=cSJjFVXLkHc2g6Jn' }
+    ],
+    mainReel: 'https://youtu.be/X_RS0SwuSDs?si=cSJjFVXLkHc2g6Jn',
+    competitor: 'なし'
+  },
+  '中塚智': {
+    name: '中塚智',
+    furigana: 'なかつか さとし',
+    age: 27,
+    birthday: '1998/11/13',
+    bornIn: '茨城県',
+    height: '176cm',
+    skills: '野球, 日本舞踊, 茶道, サウナ',
+    officialUrl: 'https://gateagency.jp/talent/satoshinakatsuka/',
+    profilePdf: 'https://drive.google.com/file/d/1RnwtvaRHYb4Q-AE5vTp4A0iFawVUdEGB/view?usp=drive_link',
+    photosFolder: 'https://drive.google.com/drive/folders/1lUxAmoQNmoDv8vRCJdnbE52u-Xd-NhvJ?usp=sharing',
+    reels: [
+      { title: '出演映像リール', url: 'https://youtu.be/SJg9HwIykT8?si=kLwfn4yYiYcj9JA5' }
+    ],
+    mainReel: 'https://youtu.be/SJg9HwIykT8?si=kLwfn4yYiYcj9JA5',
+    competitor: 'なし'
+  },
+  '太田陽菜': {
+    name: '太田陽菜',
+    furigana: 'おおた ひな',
+    age: 20,
+    birthday: '2006/03/07',
+    bornIn: '愛知県岡崎市（滋賀県大津市育ち）',
+    height: '156cm',
+    skills: '歌, ジャズダンス, タップダンス, バレエ',
+    hobbies: '舞台観劇, 甘いものを食べること',
+    education: '大阪芸術大学 舞台芸術学科（授業料免除特待生）',
+    officialUrl: 'https://gateagency.jp/talent/hinaota/',
+    profilePdf: 'https://drive.google.com/file/d/1B46rb-RTCAqCkKyba9sdcyFVj2_NZCbp/view?usp=drive_link',
+    photosFolder: 'https://drive.google.com/drive/folders/1lUxAmoQNmoDv8vRCJdnbE52u-Xd-NhvJ?usp=sharing',
+    reels: [],
+    mainReel: '',
+    competitor: 'なし'
+  },
+  '小久保宏紀': {
+    name: '小久保宏紀',
+    furigana: 'こくぼ ひろき',
+    age: 21,
+    birthday: '2004/04/05',
+    bornIn: '静岡県',
+    height: '165.5cm',
+    license: '第二種電気工事士, 日本語検定準3級',
+    officialUrl: 'https://gateagency.jp/talent/hirokikokubo/',
+    profilePdf: 'https://drive.google.com/file/d/1MAo6mbQXh38lqiMAxQ8oJAm4bxhjMdDC/view?usp=drive_link',
+    photosFolder: 'https://drive.google.com/drive/folders/1lUxAmoQNmoDv8vRCJdnbE52u-Xd-NhvJ?usp=sharing',
+    reels: [
+      { title: '出演映像リール', url: 'https://youtu.be/LxDR7j2y1JY?si=OEOneMaLgm-GEqq-' }
+    ],
+    mainReel: 'https://youtu.be/LxDR7j2y1JY?si=OEOneMaLgm-GEqq-',
+    competitor: 'なし'
+  },
+  '相馬寿樹': {
+    name: '相馬寿樹',
+    furigana: 'そうま としき',
+    age: 24,
+    birthday: '2002/01/15',
+    height: '178cm',
+    role: '映画監督 / 映像ディレクター',
+    officialUrl: 'https://gateagency.jp/talent/toshikisoma/',
+    profilePdf: 'https://drive.google.com/file/d/1MAo6mbQXh38lqiMAxQ8oJAm4bxhjMdDC/view?usp=drive_link',
+    photosFolder: 'https://drive.google.com/drive/folders/1lUxAmoQNmoDv8vRCJdnbE52u-Xd-NhvJ?usp=sharing',
+    reels: [
+      { title: '出演映像リール', url: 'https://youtu.be/WmuDVNX2Q5I' }
+    ],
+    mainReel: 'https://youtu.be/WmuDVNX2Q5I',
+    competitor: 'なし'
+  }
+};
+
 // ===== Security helpers =====
 function escapeHtml(s) {
   if (s == null) return '';
@@ -255,6 +366,7 @@ function talentIcon(name) { return TALENT_ICONS[name] || '👤'; }
 // ===== Render All =====
 function renderAll() {
   renderTalentFilter();
+  renderTalentKitBar();
   renderStats();
   renderActionPanel();
   renderDeadlines();
@@ -348,6 +460,105 @@ function renderTalentFilter() {
 function setTalent(t) {
   currentTalent = t;
   renderAll();
+}
+
+// ===== Talent Assets & Press Kit Bar =====
+function renderTalentKitBar() {
+  const bar = document.getElementById('talentKitBar');
+  if (!bar) return;
+
+  if (currentTalent === 'all' || !TALENT_ASSETS[currentTalent]) {
+    bar.classList.add('hidden');
+    bar.innerHTML = '';
+    return;
+  }
+
+  const t = TALENT_ASSETS[currentTalent];
+  const color = talentColor(t.name);
+  const icon = talentIcon(t.name);
+
+  bar.classList.remove('hidden');
+  bar.innerHTML = `
+    <div class="talent-kit-info">
+      <div class="talent-kit-avatar" style="background: ${color}">${icon}</div>
+      <div class="talent-kit-title-wrap">
+        <div class="talent-kit-title">
+          <span>${escapeHtml(t.name)}</span>
+          <span class="talent-kit-tag">${t.age}歳 / ${t.height}</span>
+        </div>
+        <div class="talent-kit-meta">
+          <span>競合状況: ${escapeHtml(t.competitor || 'なし')}</span>
+        </div>
+      </div>
+    </div>
+    <div class="talent-kit-actions">
+      <button class="btn-kit-copy" onclick="copyTalentPack('${escapeHtml(t.name)}')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        <span>📋 提案素材を一括コピー</span>
+      </button>
+      <a href="${t.profilePdf}" target="_blank" rel="noopener noreferrer" class="btn-kit-link" title="プロフィールPDFを開く">
+        <span>📄 プロフィールPDF</span>
+      </a>
+      <a href="${t.photosFolder}" target="_blank" rel="noopener noreferrer" class="btn-kit-link" title="近影写真フォルダを開く">
+        <span>📷 近影写真</span>
+      </a>
+      <a href="${t.mainReel}" target="_blank" rel="noopener noreferrer" class="btn-kit-link" title="出演映像・演技リールを開く">
+        <span>🎬 映像リール</span>
+      </a>
+    </div>
+  `;
+}
+
+function copyTalentPack(talentName) {
+  const t = TALENT_ASSETS[talentName];
+  if (!t) return;
+
+  let reelsText = '';
+  if (t.reels && t.reels.length > 0) {
+    reelsText = t.reels.map(r => `・${r.title}: ${r.url}`).join('\n');
+  }
+
+  const text = `【${t.name}（${t.furigana} / ${t.age}歳 / ${t.height}）】
+■ 公式プロフィール:
+${t.officialUrl || ''}
+
+■ プロフィール資料（PDF）:
+${t.profilePdf || '準備中'}
+
+■ 近影写真フォルダ（Google Drive）:
+${t.photosFolder || '準備中'}
+
+■ 出演映像・演技リール:
+${reelsText || '準備中'}
+
+■ 競合・契約状況:
+${t.competitor || 'なし'}`;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast(`📋 ${t.name} の提案用素材セットをコピーしました！`);
+    }).catch(() => {
+      fallbackCopy(text, t.name);
+    });
+  } else {
+    fallbackCopy(text, t.name);
+  }
+}
+
+function fallbackCopy(text, name) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand('copy');
+    showToast(`📋 ${name} の提案用素材セットをコピーしました！`);
+  } catch (e) {
+    showToast('⚠️ コピーに失敗しました');
+  }
+  document.body.removeChild(ta);
 }
 
 // ===== Stats =====
@@ -1666,9 +1877,28 @@ async function handleSalesAddSubmit(e) {
 }
 
 // ===== Survey (タレントアンケート) =====
-let surveyDataCache = [];
-let surveySearchQuery = '';
-let activeSurveyData = null; // 現在モーダルで開いているデータ
+// タレント名の正規化マップ（苗字のみをフルネームに統一）
+function normalizeTalentFullName(name) {
+  if (!name) return '';
+  const s = String(name).trim().replace(/\s+/g, '');
+  const map = {
+    '島田': '島田和奏',
+    '島田和奏': '島田和奏',
+    '小久保': '小久保宏紀',
+    '小久保宏紀': '小久保宏紀',
+    '谷口': '谷口彩菜',
+    '谷口彩菜': '谷口彩菜',
+    '太田': '太田陽菜',
+    '太田陽菜': '太田陽菜',
+    '寺崎': '寺崎ひな',
+    '寺崎ひな': '寺崎ひな',
+    '中塚': '中塚智',
+    '中塚智': '中塚智',
+    '相馬': '相馬寿樹',
+    '相馬寿樹': '相馬寿樹'
+  };
+  return map[s] || s;
+}
 
 async function loadSurveyData() {
   const container = document.getElementById('surveyList');
@@ -1684,7 +1914,17 @@ async function loadSurveyData() {
     const res = await fetch(withToken(`${GAS_WEBAPP_URL}?action=survey`));
     const json = await res.json();
     if (json.success && json.data) {
-      surveyDataCache = json.data;
+      // タレント名を正規化し、同一タレントは最新の1件（フルネーム）にマージ
+      const map = new Map();
+      json.data.forEach(item => {
+        const canonicalName = normalizeTalentFullName(item.talentName);
+        item.talentName = canonicalName;
+        // 既存のものがある場合は、IDが大きい（最新）または更新日が新しい方を優先
+        if (!map.has(canonicalName) || Number(item.id) > Number(map.get(canonicalName).id)) {
+          map.set(canonicalName, item);
+        }
+      });
+      surveyDataCache = Array.from(map.values());
       renderSurveyList();
     } else {
       throw new Error(json.error || 'データ取得失敗');
@@ -1706,7 +1946,7 @@ function renderSurveyList() {
   }
   
   if (currentTalent !== 'all') {
-    data = data.filter(d => d.talentName === currentTalent);
+    data = data.filter(d => d.talentName === currentTalent || d.talentName.includes(currentTalent) || currentTalent.includes(d.talentName));
   }
   
   if (!data.length) {
@@ -1866,7 +2106,7 @@ function renderSurveyDetailHTML(talentName, updateDate, raw) {
       <!-- Section 5 -->
       <div class="preview-section" style="margin-bottom:28px; border-left:3px solid var(--accent); padding-left:15px">
         <h4 style="font-size: 1.05rem; color: var(--text); font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px;">05. 私を構成する3つの「偏愛」</h4>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+        <div class="love-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
           <div style="background: var(--bg-alt); border: 1.5px solid var(--border); padding: 14px; border-radius: 6px;">
             <div style="font-weight:800; font-size:0.75rem; color:var(--accent); margin-bottom:6px; text-transform: uppercase; letter-spacing: 0.5px;">偏愛 1</div>
             <div style="font-weight:800; font-size:0.9rem; margin-bottom:8px; color:var(--text);">${escapeHtml(raw.love1) || '-'}</div>
@@ -1888,7 +2128,7 @@ function renderSurveyDetailHTML(talentName, updateDate, raw) {
       <!-- Section 6 -->
       <div class="preview-section" style="border-left:3px solid var(--accent); padding-left:15px; page-break-inside: avoid;">
         <h4 style="font-size: 1.05rem; color: var(--text); font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px;">06. 面談・同行でよく聞かれる質問（FAQ）</h4>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
+        <div class="faq-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
           <div style="background: var(--bg-alt); border: 1.5px solid var(--border); padding: 12px; border-radius: 6px;">
             <div style="font-weight:800; font-size:0.75rem; color:var(--accent); margin-bottom:4px;"><i class="fa-solid fa-location-dot"></i> 出身地・地元トーク</div>
             <div style="font-size:0.85rem; color:var(--text);">${escapeHtml(raw.faqHometown) || '（未記入）'}</div>
