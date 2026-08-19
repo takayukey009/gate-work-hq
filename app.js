@@ -1918,9 +1918,13 @@ async function loadSurveyData() {
     const res = await fetch(withToken(`${GAS_WEBAPP_URL}?action=survey`));
     const json = await res.json();
     if (json.success && json.data) {
+      // 初期サンプルデータ（ID 1〜5 のダミーテストデータ）を除外
+      const sampleIds = [1, 2, 3, 4, 5];
+      const validItems = json.data.filter(item => !sampleIds.includes(Number(item.id)) && item.bibleMovie !== 'サンプル');
+
       // タレント名を正規化し、同一タレントは最新の1件（フルネーム）にマージ
       const map = new Map();
-      json.data.forEach(item => {
+      validItems.forEach(item => {
         const canonicalName = normalizeTalentFullName(item.talentName);
         item.talentName = canonicalName;
         // 既存のものがある場合は、IDが大きい（最新）または更新日が新しい方を優先
