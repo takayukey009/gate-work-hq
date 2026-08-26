@@ -931,13 +931,16 @@ function showSection(section) {
   document.getElementById('section-'+section)?.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelector(`[data-section="${section}"]`)?.classList.add('active');
-  const titles = {dashboard:'ダッシュボード',kanban:'カンバン',works:'仕事一覧',list:'リスト（AD）',calendar:'カレンダー',stats:'統計',sales_attack:'営業アタック',survey:'ルーツシート'};
+  const titles = {dashboard:'ダッシュボード',kanban:'カンバン',works:'仕事一覧',list:'リスト（AD）',calendar:'カレンダー',stats:'統計',sales_attack:'営業アタック',survey:'ルーツシート',mission:'ミッション管理'};
   document.getElementById('pageTitle').textContent = titles[section] || section;
   if (section === 'sales_attack') {
     renderSalesAttackAll();
   }
   if (section === 'survey') {
     loadSurveyData();
+  }
+  if (section === 'mission') {
+    loadMissionData();
   }
   // Close mobile sidebar
   document.getElementById('sidebar').classList.remove('open');
@@ -967,7 +970,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ハッシュルーティング監視
   window.addEventListener('hashchange', () => {
     const section = location.hash.replace('#', '') || 'dashboard';
-    const validSections = ['dashboard', 'kanban', 'works', 'list', 'calendar', 'stats', 'sales_attack', 'survey'];
+    const validSections = ['dashboard', 'kanban', 'works', 'list', 'calendar', 'stats', 'sales_attack', 'survey', 'mission'];
     if (validSections.includes(section)) {
       showSection(section);
     }
@@ -975,7 +978,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 初回ロード時のルーティング
   const initSection = location.hash.replace('#', '') || 'dashboard';
-  const validSections = ['dashboard', 'kanban', 'works', 'list', 'calendar', 'stats', 'sales_attack', 'survey'];
+  const validSections = ['dashboard', 'kanban', 'works', 'list', 'calendar', 'stats', 'sales_attack', 'survey', 'mission'];
   if (validSections.includes(initSection)) {
     showSection(initSection);
   }
@@ -1050,6 +1053,37 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('surveySearch')?.addEventListener('input', e => {
     surveySearchQuery = e.target.value;
     renderSurveyList();
+  });
+
+  // Mission Nav & Controls
+  document.getElementById('missionPrev')?.addEventListener('click', () => {
+    missionWeekOffset--;
+    loadMissionData();
+  });
+  document.getElementById('missionNext')?.addEventListener('click', () => {
+    missionWeekOffset++;
+    loadMissionData();
+  });
+  document.getElementById('missionMeetingMode')?.addEventListener('change', () => {
+    renderMissionView();
+  });
+  document.getElementById('missionPeople')?.addEventListener('click', e => {
+    const dotBtn = e.target.closest('.mission-dots button');
+    if (dotBtn) {
+      const p = +dotBtn.dataset.p;
+      const m = +dotBtn.dataset.m;
+      const i = +dotBtn.dataset.i;
+      handleMissionDotClick(p, m, i);
+      return;
+    }
+    const targetSaveBtn = e.target.closest('.mission-unset-box button');
+    if (targetSaveBtn) {
+      const mId = targetSaveBtn.dataset.mid;
+      const input = targetSaveBtn.parentElement.querySelector('input');
+      if (mId && input) {
+        handleMissionTargetSubmit(mId, input.value);
+      }
+    }
   });
 
   // Load data
@@ -2329,4 +2363,361 @@ function renderBriefingHTML() {
     </div>
   `;
 }
+
+// ============================================================
+// ミッション管理フロントエンドロジック (Mission Tab)
+// ============================================================
+
+let missionWeekOffset = 0;
+let missionDataCache = null;
+
+// フォールバック用初期ミッションデータ
+const MISSION_FALLBACK = {
+  week: "2026-09-01",
+  employees: [
+    {
+      id: "EMP-003",
+      name: "十河",
+      dept: "第3部",
+      role: "部長",
+      provisional: false,
+      talents: ["直轄：中島健太（画家）", "相馬寿樹（監督）"],
+      missions: [
+        { id: "MSN-001", category: "MANAGEMENT", title: "部長定例で全項目の進捗・数値を報告", type: "weekly", target: 1, unit: "回/週", actual: 0 },
+        { id: "MSN-002", category: "MANAGEMENT", title: "内田・佐藤のカレンダーを確認し空き時間を埋める", type: "weekly", target: 5, unit: "回/週", note: "平日毎日", actual: 0 },
+        { id: "MSN-003", category: "SALES", title: "制作会社への営業", type: "weekly", target: 3, unit: "回/週", note: "ショートドラマ営業は停止。ドラマ・映画のキャスティング営業へ", actual: 0 },
+        { id: "MSN-004", category: "SUPPORT", title: "森ひかる スポンサー会議（福永と）", type: "weekly", target: 1, unit: "回/週", actual: 0 },
+        { id: "MSN-005", category: "SUPPORT", title: "井上とのAI活用会議", type: "weekly", target: 1, unit: "回/週", note: "業務改善・AI活用の協議", actual: 0 },
+        { id: "MSN-006", category: "MANAGEMENT", title: "内田・佐藤との個別MTG／3人MTG", type: "unset", ask: "週あたり何回？", actual: 0 },
+        { id: "MSN-007", category: "SALES", title: "若手俳優5名の売り込み営業（内田と前線で）", type: "unset", ask: "月あたり何社？", note: "友田オレ・中塚智・島田和奏・谷口彩菜・寺崎ひな", actual: 0 },
+        { id: "MSN-008", category: "SALES", title: "丸一との定例会議・グッズ制作の推進", type: "unset", ask: "定例は週何回？", actual: 0 },
+        { id: "MSN-009", category: "SALES", title: "中島健太・相馬寿樹の案件で売上構築", type: "unset", ask: "年内いくら？", actual: 0 },
+        { id: "MSN-010", category: "PROJECT", title: "YAGATE以外の事務所主催ライブを立ち上げ", type: "unset", ask: "初回はいつ？", actual: 0 },
+        { id: "MSN-011", category: "PROJECT", title: "若手芸人中心のPodcast番組を立ち上げ", type: "unset", ask: "年内何番組？", actual: 0 },
+        { id: "MSN-012", category: "PROJECT", title: "YAGATEのSNS発信強化", type: "unset", ask: "週何投稿？", actual: 0 }
+      ]
+    },
+    {
+      id: "EMP-004",
+      name: "内田",
+      dept: "第3部",
+      role: "チーフ",
+      provisional: true,
+      talents: ["担当：友田オレ", "中塚智", "島田和奏", "谷口彩菜", "寺崎ひな"],
+      missions: [
+        { id: "MSN-013", category: "SALES", title: "担当5名の売り込み営業（十河と同行）", type: "weekly", target: 3, unit: "回/週", note: "仮", actual: 0 },
+        { id: "MSN-014", category: "MANAGEMENT", title: "翌週スケジュールを十河へ共有", type: "weekly", target: 1, unit: "回/週", note: "仮", actual: 0 },
+        { id: "MSN-015", category: "SALES", title: "担当タレントの営業資料（プロフィール/素材）更新", type: "unset", ask: "何名分をいつまでに？", note: "仮", actual: 0 },
+        { id: "MSN-016", category: "SALES", title: "丸一とのグッズ制作やり取り", type: "unset", ask: "納期はいつ？", note: "仮", actual: 0 }
+      ]
+    },
+    {
+      id: "EMP-005",
+      name: "佐藤",
+      dept: "第3部",
+      role: "現場M",
+      provisional: true,
+      talents: ["担当：リンドバーグ", "イクラボブチャンチャン", "めっちゃ最高ズ", "深海魚", "リバーサイドマエストロ", "YAGATE", "友田オレ", "シャワーカーテニスト", "チェット", "一向聴"],
+      missions: [
+        { id: "MSN-017", category: "PROJECT", title: "YAGATE公式SNSの発信", type: "weekly", target: 5, unit: "回/週", note: "仮", actual: 0 },
+        { id: "MSN-018", category: "MANAGEMENT", title: "翌週スケジュールを十河へ共有", type: "weekly", target: 1, unit: "回/週", note: "仮", actual: 0 },
+        { id: "MSN-019", category: "PROJECT", title: "新規主催ライブの出演者ブッキング", type: "unset", ask: "初回は何組？", note: "仮", actual: 0 },
+        { id: "MSN-020", category: "PROJECT", title: "Podcast収録の運営", type: "unset", ask: "月何本収録？", note: "仮", actual: 0 }
+      ]
+    }
+  ]
+};
+
+function getMissionMonday(off) {
+  const d = new Date();
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + off * 7);
+  return d;
+}
+
+function getMissionMondayStr(off) {
+  const d = getMissionMonday(off);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function getMissionWeekLabel(off) {
+  const d = getMissionMonday(off);
+  const e = new Date(d);
+  e.setDate(d.getDate() + 6);
+  const f = x => `${x.getMonth() + 1}/${x.getDate()}`;
+  return `${d.getFullYear()} ${f(d)} – ${f(e)}` + (off === 0 ? "（今週）" : "");
+}
+
+async function loadMissionData() {
+  const wkStr = getMissionMondayStr(missionWeekOffset);
+  const wkLabelEl = document.getElementById('missionWk');
+  if (wkLabelEl) wkLabelEl.textContent = getMissionWeekLabel(missionWeekOffset);
+
+  if (hasGasUrl()) {
+    try {
+      const url = withToken(`${GAS_WEBAPP_URL}?action=mission&week=${wkStr}`);
+      const json = await fetchWithTimeout(url, {}, 5000);
+      if (json && json.employees && json.employees.length) {
+        missionDataCache = json;
+        renderMissionView();
+        return;
+      }
+    } catch (err) {
+      console.warn('ミッションデータ取得失敗。フォールバック表示を使用:', err.message);
+    }
+  }
+
+  // フォールバック
+  missionDataCache = JSON.parse(JSON.stringify(MISSION_FALLBACK));
+  missionDataCache.week = wkStr;
+  renderMissionView();
+}
+
+function renderMissionView() {
+  if (!missionDataCache || !missionDataCache.employees) return;
+
+  const wkLabelEl = document.getElementById('missionWk');
+  if (wkLabelEl) wkLabelEl.textContent = getMissionWeekLabel(missionWeekOffset);
+
+  const meeting = document.getElementById('missionMeetingMode')?.checked || false;
+  const toggleEl = document.getElementById('missionMeetingToggle');
+  if (toggleEl) toggleEl.classList.toggle('on', meeting);
+
+  let unsetTotal = 0;
+  const sumHtml = [];
+  const bodyHtml = [];
+
+  missionDataCache.employees.forEach((p, pi) => {
+    let need = 0;
+    let got = 0;
+
+    (p.missions || []).forEach((m) => {
+      if (m.type === 'weekly') {
+        const tgt = Number(m.target) || 0;
+        const act = Number(m.actual) || 0;
+        need += tgt;
+        got += Math.min(act, tgt);
+      }
+      if (m.type === 'unset') {
+        unsetTotal++;
+      }
+    });
+
+    const pct = need > 0 ? Math.round((got / need) * 100) : 0;
+
+    sumHtml.push(`
+      <div class="mission-sum-card">
+        <div class="mission-sum-nm">
+          <span>${escapeHtml(p.name)}</span>
+          <span class="mission-sum-rl">${escapeHtml(p.role || '')}</span>
+        </div>
+        <div class="mission-sum-big">${pct}<small>%</small></div>
+        <div class="mission-bar"><i style="width:${pct}%"></i></div>
+        <div class="mission-sum-sub">週次アクション ${got} / ${need} 回</div>
+      </div>
+    `);
+
+    const rowsHtml = (p.missions || []).map((m, mi) => {
+      const act = Number(m.actual) || 0;
+      const tgt = Number(m.target) || 0;
+      const isDone = m.type === 'weekly' && act >= tgt;
+      const hidden = meeting && isDone;
+
+      let rightHtml = '';
+      if (m.type === 'weekly') {
+        const dots = Array.from({ length: tgt }, (_, i) => {
+          const isOn = i < act;
+          return `<button class="${isOn ? 'on' : ''}" data-p="${pi}" data-m="${mi}" data-i="${i}" aria-label="${escapeHtml(m.title)} ${i+1}回目"></button>`;
+        }).join('');
+        rightHtml = `
+          <div class="mission-dots">${dots}</div>
+          <span class="mission-count ${isDone ? 'done' : ''}">${act}/${tgt}</span>
+        `;
+      } else if (m.type === 'target') {
+        const dueStr = m.due ? `（期日: ${escapeHtml(m.due)}）` : '';
+        rightHtml = `
+          <span style="font-size:12px; font-weight:700; color:var(--accent);">
+            目標: ${escapeHtml(String(m.target))} ${escapeHtml(m.unit || '')} ${dueStr}
+          </span>
+        `;
+      } else {
+        // unset
+        const askText = m.ask || '数値を入力...';
+        rightHtml = `
+          <div class="mission-unset-box">
+            <span>未設定</span>
+            <input type="text" placeholder="${escapeHtml(askText)}" aria-label="${escapeHtml(m.title)} の目標値">
+            <button type="button" data-mid="${escapeHtml(m.id)}">確定</button>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="mission-row ${hidden ? 'hide' : ''}">
+          <div class="mission-m-main">
+            <span class="mission-m-cat">${escapeHtml(m.category || 'MANAGEMENT')}</span>
+            <div class="mission-m-title">${escapeHtml(m.title)}</div>
+            ${m.note ? `<div class="mission-m-note">${escapeHtml(m.note)}</div>` : ''}
+          </div>
+          <div class="mission-m-right">${rightHtml}</div>
+        </div>
+      `;
+    }).join('');
+
+    const talentsStr = Array.isArray(p.talents) ? p.talents.join(' / ') : (p.talents || '');
+
+    bodyHtml.push(`
+      <div class="mission-person">
+        <div class="mission-person-head">
+          <span class="nm">${escapeHtml(p.name)}</span>
+          <span class="mission-chip ${pi === 0 ? 'mgr' : ''}">${escapeHtml(p.role || '')}</span>
+          ${p.provisional ? '<span class="mission-provisional">仮・要確認</span>' : ''}
+          <span class="talents">${escapeHtml(talentsStr)}</span>
+        </div>
+        ${rowsHtml}
+      </div>
+    `);
+  });
+
+  const sumEl = document.getElementById('missionSummary');
+  if (sumEl) sumEl.innerHTML = sumHtml.join('');
+
+  const peoEl = document.getElementById('missionPeople');
+  if (peoEl) peoEl.innerHTML = bodyHtml.join('');
+
+  const alertEl = document.getElementById('missionAlert');
+  if (alertEl) {
+    if (unsetTotal > 0) {
+      alertEl.style.display = '';
+      alertEl.innerHTML = `⚠️ 数値が入っていないミッションが <b>${unsetTotal}件</b> あります。「アバウトな指標の禁止」に沿って、定例会議でその場で回数・金額・期日を確定してください。`;
+    } else {
+      alertEl.style.display = '';
+      alertEl.innerHTML = `✅ すべてのミッションに数値目標が設定されています。`;
+    }
+  }
+}
+
+async function handleMissionDotClick(pIdx, mIdx, dotIdx) {
+  if (!missionDataCache || !missionDataCache.employees) return;
+  const p = missionDataCache.employees[pIdx];
+  if (!p || !p.missions) return;
+  const m = p.missions[mIdx];
+  if (!m || m.type !== 'weekly') return;
+
+  const currentActual = Number(m.actual) || 0;
+  // 同じドットを再度押したら1つ戻す、それ以外はそのドットのインデックス+1にする
+  const newActual = (currentActual === dotIdx + 1) ? dotIdx : dotIdx + 1;
+  m.actual = newActual;
+
+  // 楽観的UI更新
+  renderMissionView();
+
+  // バックグラウンドでPOST
+  if (hasGasUrl()) {
+    try {
+      const wkStr = getMissionMondayStr(missionWeekOffset);
+      const postData = {
+        mode: 'mission_progress',
+        week: wkStr,
+        missionId: m.id,
+        actual: newActual,
+        employeeId: p.id,
+        token: API_TOKEN
+      };
+      await fetch(GAS_WEBAPP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(postData)
+      });
+    } catch (err) {
+      console.warn('進捗の保存に失敗しました:', err.message);
+      showToast('⚠️ 進捗の同期に失敗しました（再読み込みで再試行）');
+    }
+  }
+}
+
+async function handleMissionTargetSubmit(missionId, inputVal) {
+  const val = (inputVal || '').trim();
+  if (!val) {
+    showToast('⚠️ 数値や目標を入力してください');
+    return;
+  }
+
+  // 週あたりの回数（例: "週3回", "3"）か、期日つき目標かを判定
+  let target = null;
+  let unit = '';
+  let due = '';
+  let newType = 'target';
+
+  const numMatch = val.match(/\d+/);
+  if (numMatch) {
+    target = Number(numMatch[0]);
+  }
+
+  if (val.includes('週') || val.includes('回/週')) {
+    unit = '回/週';
+    newType = 'weekly';
+  } else if (val.includes('円') || val.includes('万')) {
+    unit = val.includes('万') ? '万円' : '円';
+  } else if (val.includes('社')) {
+    unit = '社/月';
+  } else if (val.includes('番組')) {
+    unit = '番組';
+  } else if (val.includes('組')) {
+    unit = '組';
+  } else {
+    unit = '件';
+  }
+
+  // 画面側キャッシュの即時更新
+  if (missionDataCache && missionDataCache.employees) {
+    missionDataCache.employees.forEach(emp => {
+      (emp.missions || []).forEach(m => {
+        if (m.id === missionId) {
+          m.type = newType;
+          m.target = target || 1;
+          m.unit = unit;
+          m.due = due;
+          m.confirmed = true;
+        }
+      });
+    });
+    renderMissionView();
+  }
+
+  if (hasGasUrl()) {
+    try {
+      showToast('⏳ ミッション目標値を保存中...');
+      const postData = {
+        mode: 'mission_target',
+        missionId: missionId,
+        target: target || 1,
+        unit: unit,
+        due: due,
+        type: newType,
+        token: API_TOKEN
+      };
+      const res = await fetch(GAS_WEBAPP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(postData)
+      });
+      const json = await res.json();
+      if (json.success) {
+        showToast('✅ 目標値を確定しました！');
+        loadMissionData();
+      } else {
+        throw new Error(json.error || '保存失敗');
+      }
+    } catch (err) {
+      console.error('目標値保存エラー:', err);
+      showToast('❌ 保存エラー: ' + err.message);
+    }
+  } else {
+    showToast('✅ ローカルで目標値を更新しました');
+  }
+}
+
 

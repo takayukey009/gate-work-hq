@@ -54,6 +54,10 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
                 <span>統計</span>
             </a>
+            <a href="#" class="nav-item" data-section="mission" id="nav-mission">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                <span>ミッション</span>
+            </a>
         </nav>
 
         <div class="sidebar-footer">
@@ -84,6 +88,11 @@
                 <div class="current-date" id="currentDate"></div>
             </div>
         </header>
+
+        <!-- Talent Assets & Press Kit Quick Bar -->
+        <div class="talent-kit-bar hidden" id="talentKitBar">
+            <!-- Rendered by JS -->
+        </div>
 
         <!-- ===== DASHBOARD ===== -->
         <section class="content-section active" id="section-dashboard">
@@ -414,6 +423,36 @@
             
             <div class="survey-grid" id="surveyList">
                 <div class="news-loading">📊 アンケート回答を読み込み中...</div>
+            </div>
+        </section>
+
+        <!-- ===== MISSION ===== -->
+        <section class="content-section" id="section-mission">
+            <div class="mission-head">
+                <div>
+                    <span class="mission-eyebrow">GATE WORK HQ / Division 3</span>
+                    <h2 class="mission-title">ミッション・週次アクション管理</h2>
+                </div>
+                <div class="mission-head-meta">
+                    <div class="mission-weekbar">
+                        <button id="missionPrev" aria-label="前の週">←</button>
+                        <span class="mission-wk" id="missionWk">読み込み中...</span>
+                        <button id="missionNext" aria-label="次の週">→</button>
+                    </div>
+                    <label class="mission-toggle" id="missionMeetingToggle">
+                        <input type="checkbox" id="missionMeetingMode">
+                        <span>定例会議モード</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="mission-alert" id="missionAlert"></div>
+            <div class="mission-summary-grid" id="missionSummary"></div>
+            <div class="mission-people-list" id="missionPeople"></div>
+
+            <div class="mission-foot">
+                <b>データの出どころ</b>：十河部長のミッションは 2026年8月26日付「個別ミッションシート」から起こしています。
+                内田チーフ・佐藤現場Mの項目は、十河シート内の記述からの<b>仮置き</b>です。実物のシートが出たら差し替えてください。
             </div>
         </section>
     </main>

@@ -1,0 +1,342 @@
+<!-- ============================================================
+  GATE WORK HQ / ミッション管理タブ 試作
+  gate-work-hq の index.html に <section id="view-mission"> として
+  そのまま差し込める構成にしてあります。
+  ・データは MISSION_DATA（下部 script）に直書き＝後で GAS 経由に差し替え
+  ・localStorage 不使用（チェックはメモリ上のみ）
+============================================================ -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ミッション管理 | GATE inc.</title>
+<style>
+:root{
+  --ink:#111823;
+  --ink-2:#42505F;
+  --ink-3:#7C8899;
+  --paper:#F2F4F7;
+  --card:#FFFFFF;
+  --line:#DCE1E8;
+  --indigo:#2C36A6;
+  --indigo-soft:#EAECF9;
+  --amber:#D8871B;
+  --amber-soft:#FDF1DF;
+  --green:#177A55;
+  --green-soft:#E4F2EC;
+  --red:#B23B33;
+  --radius:10px;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;
+  --sans:"Hiragino Kaku Gothic ProN","Yu Gothic Medium","Yu Gothic",Meiryo,system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;padding:24px 16px 64px;
+  background:var(--paper);color:var(--ink);
+  font-family:var(--sans);
+  font-size:14px;line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px;margin:0 auto}
+
+/* ---------- ヘッダー ---------- */
+.head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px;margin-bottom:20px}
+.head h1{
+  margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em;
+}
+.eyebrow{
+  font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+  color:var(--ink-3);text-transform:uppercase;display:block;margin-bottom:4px;
+}
+.head-meta{margin-left:auto;display:flex;align-items:center;gap:8px}
+
+/* ---------- 週セレクタ ---------- */
+.weekbar{
+  display:flex;align-items:center;gap:6px;
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:6px 10px;
+}
+.weekbar button{
+  border:none;background:none;cursor:pointer;color:var(--ink-2);
+  font-size:16px;line-height:1;padding:4px 6px;border-radius:6px;
+}
+.weekbar button:hover{background:var(--paper)}
+.weekbar .wk{font-family:var(--mono);font-size:12px;min-width:132px;text-align:center;color:var(--ink)}
+
+.toggle{
+  display:inline-flex;align-items:center;gap:7px;cursor:pointer;
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:9px 13px;font-size:13px;font-weight:700;user-select:none;
+}
+.toggle input{accent-color:var(--indigo);width:15px;height:15px;margin:0}
+.toggle.on{border-color:var(--indigo);background:var(--indigo-soft);color:var(--indigo)}
+
+/* ---------- サマリー ---------- */
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px}
+.sum{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:14px 16px;
+}
+.sum .nm{font-weight:800;font-size:15px;display:flex;align-items:center;gap:7px}
+.sum .rl{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--ink-3)}
+.sum .big{font-size:30px;font-weight:800;font-family:var(--mono);letter-spacing:-.03em;margin-top:6px}
+.sum .big small{font-size:13px;color:var(--ink-3);font-weight:600;margin-left:3px}
+.bar{height:5px;background:var(--paper);border-radius:3px;overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:var(--indigo);transition:width .3s}
+.sum .sub{font-size:11.5px;color:var(--ink-3);margin-top:7px}
+
+/* ---------- 人ブロック ---------- */
+.person{margin-bottom:26px}
+.person-head{
+  display:flex;align-items:center;gap:10px;
+  padding:0 2px 9px;border-bottom:2px solid var(--ink);margin-bottom:0;
+}
+.person-head .nm{font-size:17px;font-weight:800}
+.chip{
+  font-family:var(--mono);font-size:10px;letter-spacing:.08em;
+  border:1px solid var(--line);border-radius:99px;padding:2px 9px;color:var(--ink-2);background:var(--card);
+}
+.chip.mgr{background:var(--indigo);color:#fff;border-color:var(--indigo)}
+.person-head .talents{margin-left:auto;font-size:11.5px;color:var(--ink-3);text-align:right;max-width:52%}
+.provisional{
+  font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+  background:var(--amber-soft);color:var(--amber);border:1px solid #F0D9B4;
+  border-radius:99px;padding:2px 9px;
+}
+
+/* ---------- ミッション行 ---------- */
+.mission{
+  background:var(--card);border:1px solid var(--line);border-top:none;
+  padding:13px 16px;display:grid;
+  grid-template-columns:1fr auto;gap:6px 18px;align-items:center;
+}
+.mission:first-of-type{border-top:1px solid var(--line)}
+.mission.hide{display:none}
+.m-main{min-width:0}
+.m-cat{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--ink-3);
+  display:block;margin-bottom:1px;
+}
+.m-title{font-weight:700;font-size:14px}
+.m-note{font-size:11.5px;color:var(--ink-3);margin-top:2px}
+.m-right{display:flex;align-items:center;gap:14px;justify-self:end}
+
+/* コミットドット（シグネチャ） */
+.dots{display:flex;gap:5px}
+.dots button{
+  width:19px;height:19px;border-radius:50%;cursor:pointer;padding:0;
+  border:1.5px solid var(--ink-3);background:transparent;transition:.15s;
+}
+.dots button:hover{border-color:var(--indigo)}
+.dots button.on{background:var(--indigo);border-color:var(--indigo)}
+.dots button:focus-visible{outline:2px solid var(--indigo);outline-offset:2px}
+.count{font-family:var(--mono);font-size:12px;color:var(--ink-2);min-width:38px;text-align:right}
+.count.done{color:var(--green);font-weight:700}
+
+/* 数値未設定 */
+.unset{
+  display:inline-flex;align-items:center;gap:5px;
+  background:var(--amber-soft);border:1px solid #F0D9B4;color:var(--amber);
+  border-radius:6px;padding:4px 9px;font-size:11.5px;font-weight:700;white-space:nowrap;
+}
+.unset input{
+  width:58px;border:1px solid #E2C79A;border-radius:4px;padding:2px 5px;
+  font-family:var(--mono);font-size:11.5px;background:#fff;color:var(--ink);
+}
+.deadline{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);white-space:nowrap}
+
+/* ---------- 未設定アラート ---------- */
+.alert{
+  background:var(--amber-soft);border:1px solid #F0D9B4;border-left:4px solid var(--amber);
+  border-radius:var(--radius);padding:12px 16px;margin-bottom:20px;font-size:13px;
+}
+.alert b{color:var(--amber)}
+.foot{
+  margin-top:26px;padding-top:14px;border-top:1px solid var(--line);
+  font-size:11.5px;color:var(--ink-3);
+}
+@media(max-width:760px){
+  .summary{grid-template-columns:1fr}
+  .mission{grid-template-columns:1fr}
+  .m-right{justify-self:start;flex-wrap:wrap;gap:10px}
+  .person-head{flex-wrap:wrap}
+  .person-head .talents{max-width:100%;text-align:left;margin-left:0;width:100%}
+  .head-meta{margin-left:0;width:100%}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <div>
+      <span class="eyebrow">GATE WORK HQ / Division 3</span>
+      <h1>ミッション管理</h1>
+    </div>
+    <div class="head-meta">
+      <div class="weekbar">
+        <button id="prev" aria-label="前の週">←</button>
+        <span class="wk" id="wk"></span>
+        <button id="next" aria-label="次の週">→</button>
+      </div>
+      <label class="toggle" id="meetingToggle">
+        <input type="checkbox" id="meetingMode">
+        定例会議モード
+      </label>
+    </div>
+  </div>
+
+  <div class="alert" id="alert"></div>
+  <div class="summary" id="summary"></div>
+  <div id="people"></div>
+
+  <div class="foot">
+    <b>データの出どころ</b>：十河部長のミッションは 2026年8月26日付「個別ミッションシート」から起こしています。
+    内田チーフ・佐藤現場Mの項目は、十河シート内の記述からの<b>仮置き</b>です。実物のシートが出たら差し替えてください。
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   MISSION_DATA — ここを GAS の doGet(?mode=mission) の戻り値に差し替える
+   type: "weekly"  → 週あたりの必要回数を target に。ドットで消し込み
+         "target"  → 数値目標（件数/金額）。unit と deadline を持つ
+         "unset"   → 社長シートに数値が無い項目。会議でその場で数値を入れる
+============================================================ */
+const MISSION_DATA = [
+  {
+    name:"十河", role:"3部 部長", provisional:false,
+    talents:"直轄：中島健太（画家）／相馬寿樹（監督）",
+    missions:[
+      {cat:"MANAGEMENT", title:"部長定例で全項目の進捗・数値を報告", type:"weekly", target:1},
+      {cat:"MANAGEMENT", title:"内田・佐藤のカレンダーを確認し空き時間を埋める", type:"weekly", target:5, note:"平日毎日"},
+      {cat:"SALES", title:"制作会社への営業", type:"weekly", target:3, note:"ショートドラマ営業は停止。ドラマ・映画のキャスティング営業へ"},
+      {cat:"SUPPORT", title:"森ひかる スポンサー会議（福永と）", type:"weekly", target:1},
+      {cat:"SUPPORT", title:"井上とのAI活用会議", type:"weekly", target:1},
+      {cat:"MANAGEMENT", title:"内田・佐藤との個別MTG／3人MTG", type:"unset", ask:"週あたり何回？"},
+      {cat:"SALES", title:"若手俳優5名の売り込み営業（内田と前線で）", type:"unset", ask:"月あたり何社？", note:"友田オレ・中塚智・島田和奏・谷口彩菜・寺崎ひな"},
+      {cat:"SALES", title:"丸一との定例会議・グッズ制作の推進", type:"unset", ask:"定例は週何回？"},
+      {cat:"SALES", title:"中島健太・相馬寿樹の案件で売上構築", type:"unset", ask:"年内いくら？"},
+      {cat:"PROJECT", title:"YAGATE以外の事務所主催ライブを立ち上げ", type:"unset", ask:"初回はいつ？"},
+      {cat:"PROJECT", title:"若手芸人中心のPodcast番組を立ち上げ", type:"unset", ask:"年内何番組？"},
+      {cat:"PROJECT", title:"YAGATEのSNS発信強化", type:"unset", ask:"週何投稿？"}
+    ]
+  },
+  {
+    name:"内田", role:"チーフ", provisional:true,
+    talents:"担当：友田オレ／中塚智／島田和奏／谷口彩菜／寺崎ひな",
+    missions:[
+      {cat:"SALES", title:"担当5名の売り込み営業（十河と同行）", type:"weekly", target:3, note:"仮"},
+      {cat:"MANAGEMENT", title:"翌週スケジュールを十河へ共有", type:"weekly", target:1, note:"仮"},
+      {cat:"SALES", title:"担当タレントの営業資料（プロフィール/素材）更新", type:"unset", ask:"何名分をいつまでに？"},
+      {cat:"SALES", title:"丸一とのグッズ制作やり取り", type:"unset", ask:"納期はいつ？"}
+    ]
+  },
+  {
+    name:"佐藤", role:"現場M", provisional:true,
+    talents:"担当：リンドバーグ／イクラボブチャンチャン／めっちゃ最高ズ／深海魚／リバーサイドマエストロ／YAGATE／友田オレ／シャワーカーテニスト／チェット／一向聴",
+    missions:[
+      {cat:"PROJECT", title:"YAGATE公式SNSの発信", type:"weekly", target:5, note:"仮"},
+      {cat:"MANAGEMENT", title:"翌週スケジュールを十河へ共有", type:"weekly", target:1, note:"仮"},
+      {cat:"PROJECT", title:"新規主催ライブの出演者ブッキング", type:"unset", ask:"初回は何組？"},
+      {cat:"PROJECT", title:"Podcast収録の運営", type:"unset", ask:"月何本収録？"}
+    ]
+  }
+];
+
+/* ---------- 状態（メモリのみ） ---------- */
+let weekOffset = 0;
+const checks = {};              // "0-2-w0" → 済み回数
+const key = (p,m,w)=>`${p}-${m}-${w}`;
+
+function weekLabel(off){
+  const d = new Date();
+  d.setDate(d.getDate() - ((d.getDay()+6)%7) + off*7);   // 月曜
+  const e = new Date(d); e.setDate(d.getDate()+6);
+  const f = x => `${x.getMonth()+1}/${x.getDate()}`;
+  return `${d.getFullYear()} ${f(d)} – ${f(e)}` + (off===0 ? "（今週）" : "");
+}
+
+function render(){
+  document.getElementById("wk").textContent = weekLabel(weekOffset);
+  const meeting = document.getElementById("meetingMode").checked;
+  document.getElementById("meetingToggle").classList.toggle("on", meeting);
+
+  let unsetTotal = 0;
+  const sum = [], body = [];
+
+  MISSION_DATA.forEach((p,pi)=>{
+    let need=0, got=0;
+    p.missions.forEach((m,mi)=>{
+      if(m.type==="weekly"){ need+=m.target; got+=(checks[key(pi,mi,weekOffset)]||0); }
+      if(m.type==="unset") unsetTotal++;
+    });
+    const pct = need ? Math.round(got/need*100) : 0;
+    sum.push(`
+      <div class="sum">
+        <div class="nm">${p.name}<span class="rl">${p.role}</span></div>
+        <div class="big">${pct}<small>%</small></div>
+        <div class="bar"><i style="width:${pct}%"></i></div>
+        <div class="sub">週次アクション ${got} / ${need} 回</div>
+      </div>`);
+
+    const rows = p.missions.map((m,mi)=>{
+      const hidden = meeting && m.type==="weekly" && (checks[key(pi,mi,weekOffset)]||0) >= m.target;
+      let right="";
+      if(m.type==="weekly"){
+        const done = checks[key(pi,mi,weekOffset)]||0;
+        const dots = Array.from({length:m.target},(_,i)=>
+          `<button class="${i<done?'on':''}" data-p="${pi}" data-m="${mi}" data-i="${i}"
+             aria-label="${m.title} ${i+1}回目"></button>`).join("");
+        right = `<div class="dots">${dots}</div>
+                 <span class="count ${done>=m.target?'done':''}">${done}/${m.target}</span>`;
+      } else {
+        right = `<span class="unset">数値未設定
+                   <input type="text" placeholder="${m.ask}" aria-label="${m.title} の目標値">
+                 </span>`;
+      }
+      return `
+      <div class="mission ${hidden?'hide':''}">
+        <div class="m-main">
+          <span class="m-cat">${m.cat}</span>
+          <div class="m-title">${m.title}</div>
+          ${m.note?`<div class="m-note">${m.note}</div>`:""}
+        </div>
+        <div class="m-right">${right}</div>
+      </div>`;
+    }).join("");
+
+    body.push(`
+      <div class="person">
+        <div class="person-head">
+          <span class="nm">${p.name}</span>
+          <span class="chip ${pi===0?'mgr':''}">${p.role}</span>
+          ${p.provisional?'<span class="provisional">仮・要確認</span>':''}
+          <span class="talents">${p.talents}</span>
+        </div>
+        ${rows}
+      </div>`);
+  });
+
+  document.getElementById("summary").innerHTML = sum.join("");
+  document.getElementById("people").innerHTML = body.join("");
+  document.getElementById("alert").innerHTML = unsetTotal
+    ? `数値が入っていないミッションが <b>${unsetTotal}件</b> あります。「アバウトな指標の禁止」に沿って、定例会議でその場で回数・金額・期日を確定してください。`
+    : `全ミッションに数値が入っています。`;
+}
+
+document.getElementById("people").addEventListener("click", e=>{
+  const b = e.target.closest(".dots button"); if(!b) return;
+  const p=+b.dataset.p, m=+b.dataset.m, i=+b.dataset.i, k=key(p,m,weekOffset);
+  checks[k] = (checks[k]||0) === i+1 ? i : i+1;   // 同じ点を押すと1つ戻る
+  render();
+});
+document.getElementById("prev").onclick = ()=>{weekOffset--;render()};
+document.getElementById("next").onclick = ()=>{weekOffset++;render()};
+document.getElementById("meetingMode").onchange = render;
+render();
+</script>
+</body>
+</html>

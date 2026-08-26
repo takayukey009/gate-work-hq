@@ -897,17 +897,27 @@ body { font-family: var(--font); background: var(--bg-alt); color: var(--text); 
 }
 
 /* Print survey layout styles */
+@page {
+  size: A4 portrait;
+  margin: 10mm 12mm;
+}
+
 @media print {
   /* 印刷対象以外の全エレメントを完全に非表示にし、余白やレイアウトの干渉を防ぐ */
   body > *:not(#surveyDetailModal):not(#briefingModal) {
     display: none !important;
   }
-  body {
+  html, body {
     background: #ffffff !important;
-    color: #000000 !important;
+    color: #111827 !important;
     margin: 0 !important;
     padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
     min-height: auto !important;
+    overflow: visible !important;
+    font-size: 13px !important;
+    line-height: 1.45 !important;
   }
   /* 印刷対象のモーダル（オーバーレイ含む）を画面全体に広げる */
   #surveyDetailModal,
@@ -925,6 +935,7 @@ body { font-family: var(--font); background: var(--bg-alt); color: var(--text); 
     backdrop-filter: none !important;
     visibility: visible !important;
     box-shadow: none !important;
+    overflow: visible !important;
   }
   #surveyDetailModal .modal,
   #briefingModal .modal {
@@ -949,7 +960,9 @@ body { font-family: var(--font); background: var(--bg-alt); color: var(--text); 
   .modal-header button,
   .modal-header .modal-close,
   #surveyDetailModal button,
-  #briefingModal button {
+  #briefingModal button,
+  .no-print,
+  .no-print-ng {
     display: none !important;
   }
   .modal-body {
@@ -963,20 +976,588 @@ body { font-family: var(--font); background: var(--bg-alt); color: var(--text); 
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+  /* ルーツシートコンテンツ余白調整 */
+  #surveyDetailContent {
+    padding: 0 !important;
+  }
+  #surveyDetailContent > div {
+    padding: 0 !important;
+  }
   /* 改ページ時のコンテンツ崩れを防ぐ */
   .preview-section {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
+    margin-bottom: 16px !important;
+    padding-left: 12px !important;
+    border-left: 3px solid #e2000f !important;
   }
-  /* 印刷時に3つの偏愛カードが崩れず綺麗に並ぶようにする */
-  #surveyDetailContent div[style*="display: grid"],
-  #surveyDetailContent div[style*="display:grid"] {
+  .preview-section h4 {
+    font-size: 0.95rem !important;
+    margin-bottom: 8px !important;
+    color: #111827 !important;
+  }
+  .preview-section h5 {
+    font-size: 0.85rem !important;
+    margin-bottom: 4px !important;
+    color: #c8000d !important;
+  }
+  /* 偏愛カード (3列固定) */
+  .love-grid {
     display: grid !important;
     grid-template-columns: repeat(3, 1fr) !important;
-    gap: 15px !important;
+    gap: 10px !important;
   }
-  .no-print-ng {
-    display: none !important;
+  /* FAQカード (2列固定) */
+  .faq-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+  /* カードと領域の背景・枠線高コントラスト印刷最適化 */
+  .print-card,
+  #surveyDetailContent div[style*="background: var(--bg-alt)"],
+  #surveyDetailContent div[style*="background:var(--bg-alt)"] {
+    background: #f9fafb !important;
+    border: 1px solid #d1d5db !important;
+    color: #1f2937 !important;
+    padding: 10px 12px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 }
+
+/* ===== Talent Assets & Press Kit Quick Bar ===== */
+.talent-kit-bar {
+  background: linear-gradient(135deg, rgba(26, 26, 26, 0.95), rgba(38, 38, 38, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-lg, 12px);
+  margin: 12px 24px 18px;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  animation: slideDown .3s cubic-bezier(0.16, 1, 0.3, 1);
+  color: #fff;
+}
+.talent-kit-bar.hidden {
+  display: none !important;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.talent-kit-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.talent-kit-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  border: 2px solid rgba(255,255,255,0.2);
+}
+.talent-kit-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.talent-kit-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.talent-kit-tag {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+.talent-kit-meta {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+.talent-kit-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.btn-kit-copy {
+  background: linear-gradient(135deg, #e60012, #ff414d);
+  color: #fff;
+  border: none;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 16px rgba(230, 0, 18, 0.35);
+  transition: all 0.2s ease;
+}
+.btn-kit-copy:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(230, 0, 18, 0.5);
+}
+.btn-kit-copy:active {
+  transform: translateY(0);
+}
+.btn-kit-link {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+.btn-kit-link:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.35);
+  transform: translateY(-1px);
+}
+@media (max-width: 768px) {
+  .talent-kit-bar {
+    margin: 8px 12px 14px;
+    padding: 12px 14px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .talent-kit-actions {
+    width: 100%;
+  }
+  .btn-kit-copy {
+    width: 100%;
+    justify-content: center;
+  }
+  .btn-kit-link {
+    flex: 1;
+    justify-content: center;
+    font-size: 0.75rem;
+    padding: 6px 10px;
+  }
+}
+
+/* ============================================================
+   ミッション管理タブ スタイル (Mission & Action View)
+============================================================ */
+.mission-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.mission-eyebrow {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: .14em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 4px;
+}
+.mission-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -.02em;
+}
+.mission-head-meta {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.mission-weekbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 12px;
+}
+.mission-weekbar button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 16px;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all var(--transition);
+}
+.mission-weekbar button:hover {
+  background: var(--bg-alt);
+  color: var(--text);
+}
+.mission-wk {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  min-width: 140px;
+  text-align: center;
+  color: var(--text);
+  font-weight: 700;
+}
+.mission-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  user-select: none;
+  transition: all var(--transition);
+}
+.mission-toggle input {
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  cursor: pointer;
+}
+.mission-toggle.on {
+  border-color: var(--accent);
+  background: rgba(226, 0, 15, 0.08);
+  color: var(--accent);
+}
+
+/* サマリーカード (3カラム) */
+.mission-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 22px;
+}
+.mission-sum-card {
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition);
+}
+.mission-sum-card:hover {
+  border-color: var(--border-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.mission-sum-nm {
+  font-weight: 800;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+.mission-sum-rl {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  letter-spacing: .08em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.mission-sum-big {
+  font-size: 32px;
+  font-weight: 800;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: -.03em;
+  margin-top: 6px;
+  color: var(--text);
+}
+.mission-sum-big small {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-left: 3px;
+}
+.mission-bar {
+  height: 6px;
+  background: var(--bg-alt);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+.mission-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width .4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.mission-sum-sub {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+/* アラート */
+.mission-alert {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1.5px solid rgba(245, 158, 11, 0.35);
+  border-left: 5px solid #F59E0B;
+  border-radius: var(--radius);
+  padding: 12px 18px;
+  margin-bottom: 22px;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.6;
+}
+.mission-alert b {
+  color: #D97706;
+}
+
+/* 社員ブロック */
+.mission-person {
+  margin-bottom: 28px;
+}
+.mission-person-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 4px 10px;
+  border-bottom: 2px solid var(--text);
+  margin-bottom: 0;
+}
+.mission-person-head .nm {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text);
+}
+.mission-chip {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  letter-spacing: .08em;
+  border: 1.5px solid var(--border);
+  border-radius: 99px;
+  padding: 2px 10px;
+  color: var(--text-secondary);
+  background: var(--card-bg);
+  font-weight: 700;
+}
+.mission-chip.mgr {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.mission-provisional {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  letter-spacing: .06em;
+  background: rgba(245, 158, 11, 0.15);
+  color: #D97706;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 99px;
+  padding: 2px 10px;
+  font-weight: 700;
+}
+.mission-person-head .talents {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: right;
+  max-width: 55%;
+}
+
+/* ミッション行 */
+.mission-row {
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-top: none;
+  padding: 13px 18px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 20px;
+  align-items: center;
+  transition: background var(--transition);
+}
+.mission-row:first-of-type {
+  border-top: 1.5px solid var(--border);
+}
+.mission-row.hide {
+  display: none;
+}
+.mission-m-main {
+  min-width: 0;
+}
+.mission-m-cat {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  letter-spacing: .1em;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 2px;
+  font-weight: 700;
+}
+.mission-m-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+}
+.mission-m-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  line-height: 1.5;
+}
+.mission-m-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-self: end;
+}
+
+/* コミットドット */
+.mission-dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.mission-dots button {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+  border: 2px solid var(--text-muted);
+  background: transparent;
+  transition: all .15s ease;
+}
+.mission-dots button:hover {
+  border-color: var(--accent);
+  transform: scale(1.15);
+}
+.mission-dots button.on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.mission-dots button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.mission-count {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  color: var(--text-secondary);
+  min-width: 44px;
+  text-align: right;
+  font-weight: 700;
+}
+.mission-count.done {
+  color: #10B981;
+  font-weight: 800;
+}
+
+/* 数値未設定 */
+.mission-unset-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #D97706;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.mission-unset-box input {
+  width: 68px;
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  background: var(--bg);
+  color: var(--text);
+}
+.mission-unset-box button {
+  background: #D97706;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.mission-unset-box button:hover {
+  opacity: 0.9;
+}
+
+.mission-foot {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1.5px solid var(--border);
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+  .mission-summary-grid {
+    grid-template-columns: 1fr;
+  }
+  .mission-row {
+    grid-template-columns: 1fr;
+  }
+  .mission-m-right {
+    justify-self: start;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .mission-person-head {
+    flex-wrap: wrap;
+  }
+  .mission-person-head .talents {
+    max-width: 100%;
+    text-align: left;
+    margin-left: 0;
+    width: 100%;
+    margin-top: 4px;
+  }
+  .mission-head-meta {
+    margin-left: 0;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .mission-dots button {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+
+
 
