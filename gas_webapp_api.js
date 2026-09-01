@@ -258,35 +258,56 @@ function doPost(e) {
       }
     }
 
-    const isUpdate = (data.action === 'update' || (data.id && data.id !== 'undefined') || data.rowIndex);
-    if (isUpdate) {
-      const targetId = String(data.id || '');
-      const lastRow = sheet.getLastRow();
-      let foundRow = -1;
-      if (data.rowIndex && Number(data.rowIndex) > 1) {
-        foundRow = Number(data.rowIndex);
-      } else if (lastRow > 1) {
-        const values = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
-        for (let i = 0; i < values.length; i++) {
-          const cellVal = String(values[i][0]);
-          const talent = String(values[i][1]);
-          const audName = String(values[i][3]);
-          if (data.matchTalent && data.matchName) {
-            if (talent === data.matchTalent && audName.includes(data.matchName)) {
-              foundRow = i + 2;
-              break;
-            }
-          } else if (targetId && (cellVal === targetId || String(Number(cellVal)) === String(Number(targetId)))) {
-            foundRow = i + 2;
-            break;
-          }
+    // ============================================================
+    // 重複防止＆Upsert（更新・新規判定）ロジック
+    // ============================================================
+    const targetId = String(data.id || '').trim();
+    const targetTalent = String(data.talentName || '').trim();
+    const targetAudName = String(data.auditionName || '').trim();
+    const lastRow = sheet.getLastRow();
+    
+    let foundRow = -1;
+    let isUpdate = (data.action === 'update' || (targetId && targetId !== 'undefined') || data.rowIndex);
+
+    // 1. rowIndex が明示されている場合
+    if (data.rowIndex && Number(data.rowIndex) > 1) {
+      foundRow = Number(data.rowIndex);
+    } 
+    // 2. ID または タレント名×案件名 で既存行を探索
+    else if (lastRow > 1) {
+      const values = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+      for (let i = 0; i < values.length; i++) {
+        const cellId = String(values[i][0]).trim();
+        const cellTalent = String(values[i][1]).trim();
+        const cellAudName = String(values[i][3]).trim();
+        
+        // IDによる完全一致
+        if (targetId && (cellId === targetId || String(Number(cellId)) === String(Number(targetId)))) {
+          foundRow = i + 2;
+          isUpdate = true;
+          break;
+        }
+        
+        // 明示的なマッチ条件
+        if (data.matchTalent && data.matchName && cellTalent === data.matchTalent && cellAudName.includes(data.matchName)) {
+          foundRow = i + 2;
+          isUpdate = true;
+          break;
+        }
+
+        // 【最重要】ID未指定の新規登録時でも、同名タレント×同名案件が既に存在する場合は自動Upsert（上書き更新）
+        if (targetTalent && targetAudName && cellTalent === targetTalent && (cellAudName === targetAudName || (cellAudName.length > 5 && (cellAudName.includes(targetAudName) || targetAudName.includes(cellAudName))))) {
+          foundRow = i + 2;
+          isUpdate = true;
+          break;
         }
       }
-      if (foundRow === -1) {
-        throw new Error('更新対象が見つかりません: ' + (targetId || data.rowIndex || data.matchName));
-      }
-      
+    }
+
+    // 既存レコードの更新処理 (Update / Upsert)
+    if (isUpdate && foundRow > 1) {
       const existingData = sheet.getRange(foundRow, 1, 1, 17).getValues()[0];
+      const actualId = existingData[0] || targetId;
       let origRegDate = today;
       if (existingData[12]) {
         try {
@@ -298,36 +319,44 @@ function doPost(e) {
       const finalFileUrl = fileUrl || existingData[14] || '';
       
       const rowData = [
-        existingData[0], // 元のID形式を保持
-        data.talentName || '',
-        data.type || 'オーディション',
-        data.auditionName || '',
-        data.genre || '',
-        data.deadline || '',
-        data.auditionDate || '',
-        data.status || '情報収集',
-        data.owner || 'マネージャー',
-        data.action || '',
-        data.result || '未定',
-        data.notes || '',
+        actualId, // 元のIDを保持
+        data.talentName !== undefined ? data.talentName : existingData[1],
+        data.type !== undefined ? data.type : existingData[2],
+        data.auditionName !== undefined ? data.auditionName : existingData[3],
+        data.genre !== undefined ? data.genre : existingData[4],
+        data.deadline !== undefined ? data.deadline : existingData[5],
+        data.auditionDate !== undefined ? data.auditionDate : existingData[6],
+        data.status !== undefined ? data.status : existingData[7],
+        data.owner !== undefined ? data.owner : existingData[8],
+        data.action !== undefined ? data.action : existingData[9],
+        data.result !== undefined ? data.result : existingData[10],
+        data.notes !== undefined ? data.notes : existingData[11],
         origRegDate,
         today,
         finalFileUrl,
-        data.resultDate || '',
-        data.releaseDate || ''
+        data.resultDate !== undefined ? data.resultDate : existingData[15],
+        data.releaseDate !== undefined ? data.releaseDate : existingData[16]
       ];
       sheet.getRange(foundRow, 1, 1, rowData.length).setValues([rowData]);
       
       return ContentService
-        .createTextOutput(JSON.stringify({ success: true, id: targetId, fileUrl: finalFileUrl }))
+        .createTextOutput(JSON.stringify({ success: true, id: actualId, updated: true, row: foundRow, fileUrl: finalFileUrl }))
         .setMimeType(ContentService.MimeType.JSON);
     }
     
-    // 次のIDを取得
-    const lastRow = sheet.getLastRow();
+    // 更新指定なのに見つからなかった場合（タレント名・案件名もなし）
+    if (data.action === 'update' && foundRow === -1) {
+      throw new Error('更新対象のレコードが見つかりません: ID ' + targetId);
+    }
+    
+    // 不正な空データの新規追加を防止
+    if (!targetTalent && !targetAudName) {
+      throw new Error('タレント名またはオーディション名が空のため登録できません');
+    }
+
+    // 新規追加 (Create)
     const nextId = lastRow > 1 ? Number(sheet.getRange(lastRow, 1).getValue()) + 1 : 1;
     
-    // スプレッドシートに追記
     sheet.appendRow([
       nextId,                     // A: ID
       data.talentName || '',      // B: タレント名
@@ -349,7 +378,7 @@ function doPost(e) {
     ]);
     
     return ContentService
-      .createTextOutput(JSON.stringify({ success: true, id: nextId, fileUrl: fileUrl }))
+      .createTextOutput(JSON.stringify({ success: true, id: nextId, created: true, fileUrl: fileUrl }))
       .setMimeType(ContentService.MimeType.JSON);
       
   } catch (error) {

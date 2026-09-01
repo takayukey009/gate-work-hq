@@ -143,6 +143,8 @@ let allSalesAttackData = [];
 let calendarEvents = [];
 let salesSearch = '';
 let salesFilter = 'all';
+let kanbanSearch = '';
+let kanbanGenre = 'all';
 let currentTalent = 'all';
 let currentSection = 'dashboard';
 let calYear, calMonth;
@@ -720,7 +722,24 @@ function renderTalentSummary() {
 
 // ===== Kanban =====
 function renderKanban() {
-  const data = getFiltered();
+  let data = getFiltered();
+  
+  // ジャンルフィルター
+  if (kanbanGenre !== 'all') {
+    data = data.filter(d => (d['ジャンル'] || '').includes(kanbanGenre));
+  }
+
+  // 検索フィルター
+  if (kanbanSearch) {
+    const q = kanbanSearch.toLowerCase();
+    data = data.filter(d => 
+      (d['オーディション名'] || '').toLowerCase().includes(q) ||
+      (d['タレント名'] || '').toLowerCase().includes(q) ||
+      (d['備考'] || '').toLowerCase().includes(q) ||
+      (d['アクション'] || '').toLowerCase().includes(q)
+    );
+  }
+
   const buckets = {info:[],prep:[],sent:[],done:[],wait:[],order:[],complete:[]};
   data.forEach(d => {
     const s = d['ステータス'];
@@ -736,32 +755,158 @@ function renderKanban() {
     else if (s === '完了') buckets.complete.push(d);
     else buckets.info.push(d);
   });
+  
+  const statusMap = {
+    info: '情報収集',
+    prep: '応募準備',
+    sent: '書類結果待ち',
+    done: '2次以降AD',
+    wait: '結果待ち',
+    order: '受注',
+    complete: '完了'
+  };
+
   Object.keys(buckets).forEach(k => {
     const container = document.getElementById('cards-'+k);
     const countEl = document.getElementById('count-'+k);
+    const column = container?.closest('.kanban-column');
     if (!container) return;
-    container.innerHTML = buckets[k].map(d => kanbanCard(d)).join('') || '<div style="text-align:center;color:var(--text-muted);font-size:.75rem;padding:20px">なし</div>';
+    
+    container.innerHTML = buckets[k].map(d => kanbanCard(d)).join('') || '<div style="text-align:center;color:var(--text-muted);font-size:.75rem;padding:30px 10px;border:1.5px dashed var(--border);border-radius:var(--radius);margin-top:4px">ここにドロップ</div>';
     if (countEl) countEl.textContent = buckets[k].length;
+
+    // カラムへのドラッグ＆ドロップイベント設定
+    if (column && !column.dataset.dndInit) {
+      column.dataset.dndInit = 'true';
+      column.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        column.classList.add('drag-over');
+      });
+      column.addEventListener('dragleave', e => {
+        if (!column.contains(e.relatedTarget)) {
+          column.classList.remove('drag-over');
+        }
+      });
+      column.addEventListener('drop', async e => {
+        e.preventDefault();
+        column.classList.remove('drag-over');
+        const cardId = e.dataTransfer.getData('text/plain');
+        if (!cardId) return;
+        const targetStatus = statusMap[k] || column.dataset.status;
+        await handleKanbanDrop(cardId, targetStatus);
+      });
+    }
   });
+
+  // カードへのドラッグイベント設定
+  document.querySelectorAll('.kanban-card').forEach(card => {
+    card.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', card.dataset.id);
+      e.dataTransfer.effectAllowed = 'move';
+      card.classList.add('dragging');
+    });
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging');
+      document.querySelectorAll('.kanban-column').forEach(c => c.classList.remove('drag-over'));
+    });
+  });
+}
+
+// カンバンカードのドラッグ＆ドロップ時のステータス更新処理
+async function handleKanbanDrop(id, newStatus) {
+  const item = allData.find(d => String(d.ID) === String(id));
+  if (!item) return;
+  if (item['ステータス'] === newStatus) return;
+
+  const oldStatus = item['ステータス'];
+  item['ステータス'] = newStatus;
+  
+  // 受注にドロップした場合は結果を「合格」に
+  if (newStatus === '受注') {
+    item['結果'] = '合格';
+  }
+
+  renderKanban();
+  renderStats();
+  renderActionPanel();
+  showToast(`⚡ 「${item['オーディション名']}」を【${newStatus}】へ移動しました`);
+
+  // GAS WebApp API へ安全に上書き保存 (Upsert)
+  if (hasGasUrl()) {
+    try {
+      const payload = {
+        token: API_TOKEN,
+        action: 'update',
+        id: String(item.ID),
+        talentName: item['タレント名'],
+        type: item['案件種別'] || 'オーディション',
+        auditionName: item['オーディション名'],
+        genre: item['ジャンル'],
+        deadline: item['締切日'],
+        auditionDate: item['オーディション日'],
+        status: newStatus,
+        owner: item['対応者'] || 'マネージャー',
+        action: item['アクション'] || '',
+        result: item['結果'] || '未定',
+        notes: item['備考'] || '',
+        fileUrl: item['資料リンク'] || ''
+      };
+      const res = await fetch(GAS_WEBAPP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json();
+      if (!json.success) {
+        console.warn('Kanban update warning:', json.error);
+      }
+    } catch (err) {
+      console.warn('Kanban API update error:', err);
+    }
+  }
 }
 
 function kanbanCard(d) {
   const resultCls = d['結果']==='合格'?'result-pass':(d['結果']||'').startsWith('不合格')?'result-fail':d['結果']==='結果待ち'?'result-waiting':'';
-  const fileLink = d['資料リンク'] ? `<a href="${escapeHtml(d['資料リンク'])}" target="_blank" style="font-size:.6rem;color:var(--accent);text-decoration:none">📎 資料</a>` : '';
+  const fileLink = d['資料リンク'] ? `<a href="${escapeHtml(d['資料リンク'])}" target="_blank" class="card-action-btn" title="資料を開く">📎 資料</a>` : '';
   const typeVal = d['案件種別'] || 'オーディション';
   const typeColor = TYPE_COLORS[typeVal] || '#6B7280';
   const typeIcon = TYPE_ICONS[typeVal] || '📋';
-  const typeBadge = `<span style="display:inline-block;font-size:.6rem;font-weight:700;color:#fff;background:${typeColor};padding:1px 6px;border-radius:3px;margin-bottom:4px">${typeIcon} ${escapeHtml(typeVal)}</span>`;
-  return `<div class="kanban-card" style="position:relative; ${typeVal !== 'オーディション' ? 'border-left:3px solid '+typeColor : ''}">
-    <button class="card-edit-btn" data-edit-id="${escapeHtml(d['ID'])}" title="編集" style="position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;font-size:.8rem;padding:2px;line-height:1;">✏️</button>
-    ${typeBadge}
-    <div class="kanban-card-talent"><span class="talent-badge-sm" style="background:${talentColor(d['タレント名'])}">${escapeHtml(d['タレント名'])}</span></div>
+  const typeBadge = `<span style="display:inline-block;font-size:.62rem;font-weight:800;color:#fff;background:${typeColor};padding:2px 7px;border-radius:4px">${typeIcon} ${escapeHtml(typeVal)}</span>`;
+
+  // 締切カウントダウンバッジ
+  let deadlineBadge = '';
+  if (d['締切日']) {
+    const du = daysUntil(d['締切日']);
+    if (du === 0) {
+      deadlineBadge = `<span class="badge-deadline-urgent">🔥 本日締切!</span>`;
+    } else if (du === 1) {
+      deadlineBadge = `<span class="badge-deadline-urgent">⏰ 明日締切</span>`;
+    } else if (du > 1 && du <= 3) {
+      deadlineBadge = `<span class="badge-deadline-soon">⏳ あと${du}日</span>`;
+    } else if (du > 3) {
+      deadlineBadge = `<span style="font-size:.7rem;color:var(--text-muted)">〆 ${fmtDate(d['締切日'])}</span>`;
+    }
+  }
+
+  return `<div class="kanban-card" draggable="true" data-id="${escapeHtml(d['ID'])}" style="${typeVal !== 'オーディション' ? 'border-left:4px solid '+typeColor : ''}">
+    <div class="kanban-card-top">
+      ${typeBadge}
+      <span class="talent-badge-sm" style="background:${talentColor(d['タレント名'])}">${escapeHtml(d['タレント名'])}</span>
+    </div>
     <div class="kanban-card-title">${escapeHtml(d['オーディション名'])}</div>
-    <div class="kanban-card-meta">${d['締切日']?'〆 '+fmtDate(d['締切日']):''} ${d['対応者']==='マネージャー'?'<span style="color:var(--accent)">●MGR</span>':''}</div>
-    <span class="kanban-card-genre">${GENRE_ICONS[d['ジャンル']]||'📋'} ${escapeHtml(d['ジャンル'])}</span>
-    ${resultCls?` <span class="kanban-card-result ${resultCls}">${escapeHtml(d['結果'])}</span>`:''}
-    ${d['アクション']?`<div style="font-size:.65rem;color:var(--text-muted);margin-top:4px">→ ${escapeHtml(d['アクション'])}</div>`:''}
-    ${fileLink?`<div style="margin-top:4px">${fileLink}</div>`:''}
+    <div class="kanban-card-meta">
+      ${deadlineBadge}
+      <span class="kanban-card-genre">${GENRE_ICONS[d['ジャンル']]||'📋'} ${escapeHtml(d['ジャンル'])}</span>
+      ${d['対応者']==='マネージャー'?'<span style="color:var(--accent);font-weight:700">●MGR</span>':''}
+      ${resultCls?`<span class="kanban-card-result ${resultCls}">${escapeHtml(d['結果'])}</span>`:''}
+    </div>
+    ${d['アクション']?`<div style="font-size:.72rem;color:var(--text-secondary);background:var(--bg-alt);padding:4px 8px;border-radius:4px;margin-top:6px">👉 ${escapeHtml(d['アクション'])}</div>`:''}
+    <div class="kanban-card-actions">
+      ${fileLink}
+      <button class="card-action-btn card-edit-btn" data-edit-id="${escapeHtml(d['ID'])}" title="編集">✏️ 編集</button>
+    </div>
   </div>`;
 }
 
@@ -991,6 +1136,20 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('sidebarOverlay').addEventListener('click', () => {
     document.getElementById('sidebar').classList.remove('open');
     document.getElementById('sidebarOverlay').classList.remove('show');
+  });
+
+  // Kanban search & genre filter
+  document.getElementById('kanbanSearch')?.addEventListener('input', e => {
+    kanbanSearch = e.target.value;
+    renderKanban();
+  });
+  document.querySelectorAll('#kanbanGenreFilter .filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#kanbanGenreFilter .filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      kanbanGenre = btn.dataset.kgraph;
+      renderKanban();
+    });
   });
 
   // List filter
@@ -1662,19 +1821,30 @@ function renderSalesAttackToDo() {
     const rating = d['確度/感触'] || 'C';
     const ratingClass = `rating-${rating.toLowerCase()}`;
     const daysLeft = daysUntil(d['次回アクション予定日']);
-    const urgent = daysLeft <= 3 ? 'style="color:var(--accent);font-weight:700;"' : '';
-    const dateLabel = daysLeft === 0 ? '今日' : daysLeft < 0 ? '期限超過' : `${daysLeft}日後`;
+    
+    let urgencyClass = 'upcoming';
+    let dateLabel = `${daysLeft}日後`;
+    if (daysLeft < 0) {
+      urgencyClass = 'overdue';
+      dateLabel = `⚠️ ${Math.abs(daysLeft)}日超過`;
+    } else if (daysLeft === 0) {
+      urgencyClass = 'today';
+      dateLabel = '🔥 本日ToDo';
+    } else if (daysLeft === 1) {
+      urgencyClass = 'today';
+      dateLabel = '⏰ 明日';
+    }
     
     const talentBadge = d['提案タレント'] ? d['提案タレント'].split(',').map(t => `<span class="talent-badge-sm" style="background:${talentColor(t.trim())};margin-right:2px;">${escapeHtml(t.trim())}</span>`).join('') : '';
     
-    return `<div class="sales-todo-card">
-      <div class="sales-todo-header">
+    return `<div class="sales-todo-card ${urgencyClass}">
+      <div class="sales-todo-head">
         <span class="sales-todo-company">${escapeHtml(d['社名'])}</span>
-        <span class="sales-todo-date" ${urgent}>${fmtDate(d['次回アクション予定日'])} (${dateLabel})</span>
+        <span class="sales-todo-date ${urgencyClass}">${fmtDate(d['次回アクション予定日'])} (${dateLabel})</span>
       </div>
-      <div class="sales-todo-action">👉 ${escapeHtml(d['次回アクション内容'] || 'アクション未定')}</div>
+      <div class="sales-todo-body">👉 ${escapeHtml(d['次回アクション内容'] || 'アクション未定')}</div>
       <div class="sales-todo-meta">
-        <span class="sales-rating-badge ${ratingClass}">確度: ${escapeHtml(rating)}</span>
+        <span class="sales-prob-badge ${ratingClass}">確度: ${escapeHtml(rating)}</span>
         ${talentBadge}
         <span style="margin-left:auto;">担当: ${escapeHtml(d['担当者名'] || '-')}</span>
       </div>
@@ -1685,7 +1855,6 @@ function renderSalesAttackToDo() {
 function renderSalesAttackKanban() {
   const data = [...getFilteredSalesAttack()];
   
-  // 最終アプローチ日の降順でソート（日付が空の場合は末尾へ）
   data.sort((a, b) => {
     const da = parseDate(a['最終アプローチ日']);
     const db = parseDate(b['最終アプローチ日']);
@@ -1728,6 +1897,7 @@ function renderSalesAttackKanban() {
     const key = keyMap[status];
     const container = document.getElementById(`scards-${key}`);
     const countEl = document.getElementById(`scount-${key}`);
+    const column = container?.closest('.kanban-column');
     if (!container) return;
     
     container.innerHTML = list.map(d => {
@@ -1736,7 +1906,6 @@ function renderSalesAttackKanban() {
       const method = d['アプローチ方法'] ? ` <span style="font-size:.65rem;color:var(--text-muted)">(${escapeHtml(d['アプローチ方法'])})</span>` : '';
       const talentBadge = d['提案タレント'] ? d['提案タレント'].split(',').map(t => `<span class="talent-badge-sm" style="background:${talentColor(t.trim())};margin-top:4px;display:inline-block;margin-right:2px;">${escapeHtml(t.trim())}</span>`).join('') : '';
       
-      // 備考に含まれる画像リンクの抽出
       let imageLink = '';
       const rawNotes = d['備考/メモ'] || '';
       const imgMatch = rawNotes.match(/(https:\/\/drive\.google\.com\/[^\s]+)/);
@@ -1745,23 +1914,91 @@ function renderSalesAttackKanban() {
         imageLink = `<div style="margin-top:6px;"><a href="${safeUrl}" target="_blank" style="font-size:.65rem;color:var(--accent);text-decoration:none;">🖼️ 名刺画像</a></div>`;
       }
       
-      return `<div class="sales-kanban-card">
-        <span class="sales-kanban-card-badge">${escapeHtml(d['アプローチ先種別'])}</span>
-        <div class="sales-kanban-card-title">${escapeHtml(d['社名'])}</div>
-        <div class="sales-kanban-card-meta">
-          <span class="sales-rating-badge ${ratingClass}">確度: ${escapeHtml(rating)}</span>
+      const salesId = d['ID'] || d['id'] || d['社名'];
+      
+      return `<div class="sales-kanban-card" draggable="true" data-sales-id="${escapeHtml(salesId)}" data-company="${escapeHtml(d['社名'])}">
+        <span class="sales-prob-badge" style="background:var(--bg-alt);font-size:.62rem">${escapeHtml(d['アプローチ先種別'])}</span>
+        <div class="sales-kanban-card-title" style="margin-top:4px">${escapeHtml(d['社名'])}</div>
+        <div class="sales-kanban-card-sub">
+          <span class="sales-prob-badge ${ratingClass}">確度: ${escapeHtml(rating)}</span>
           ${method}
-          <div>担当: ${escapeHtml(d['担当者名'] || '-')}</div>
+          <div style="margin-top:2px">担当: ${escapeHtml(d['担当者名'] || '-')}</div>
           ${d['最終アプローチ日'] ? `<div>最終: ${fmtDate(d['最終アプローチ日'])}</div>` : ''}
         </div>
-        <div style="margin-top:4px;">${talentBadge}</div>
-        ${d['次回アクション内容'] ? `<div class="sales-kanban-card-desc">📌 ToDo: ${escapeHtml(d['次回アクション内容'])}</div>` : ''}
+        <div>${talentBadge}</div>
+        ${d['次回アクション内容'] ? `<div style="font-size:.7rem;color:var(--text-secondary);background:var(--bg-alt);padding:3px 6px;border-radius:4px;margin-top:6px">📌 ${escapeHtml(d['次回アクション内容'])}</div>` : ''}
         ${imageLink}
       </div>`;
-    }).join('') || '<div style="text-align:center;color:var(--text-muted);font-size:.75rem;padding:20px">なし</div>';
+    }).join('') || '<div style="text-align:center;color:var(--text-muted);font-size:.75rem;padding:30px 10px;border:1.5px dashed var(--border);border-radius:var(--radius);margin-top:4px">ここにドロップ</div>';
     
     if (countEl) countEl.textContent = list.length;
+
+    // 営業カンバンカラムのD&D初期化
+    if (column && !column.dataset.salesDndInit) {
+      column.dataset.salesDndInit = 'true';
+      column.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        column.classList.add('drag-over');
+      });
+      column.addEventListener('dragleave', e => {
+        if (!column.contains(e.relatedTarget)) {
+          column.classList.remove('drag-over');
+        }
+      });
+      column.addEventListener('drop', async e => {
+        e.preventDefault();
+        column.classList.remove('drag-over');
+        const companyName = e.dataTransfer.getData('text/plain');
+        if (!companyName) return;
+        const targetStatus = column.dataset.sstatus || status;
+        await handleSalesKanbanDrop(companyName, targetStatus);
+      });
+    }
   });
+
+  // 営業カードのドラッグ設定
+  document.querySelectorAll('.sales-kanban-card').forEach(card => {
+    card.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', card.dataset.company);
+      e.dataTransfer.effectAllowed = 'move';
+      card.classList.add('dragging');
+    });
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging');
+      document.querySelectorAll('#salesKanbanBoard .kanban-column').forEach(c => c.classList.remove('drag-over'));
+    });
+  });
+}
+
+// 営業カンバンのステータスドロップ処理
+async function handleSalesKanbanDrop(companyName, newStatus) {
+  const item = allSalesAttackData.find(d => String(d['社名']) === String(companyName));
+  if (!item) return;
+  if (item['アタックステータス'] === newStatus) return;
+
+  item['アタックステータス'] = newStatus;
+  renderSalesAttackKanban();
+  renderSalesAttackList();
+  showToast(`💼 「${companyName}」を【${newStatus}】へ移動しました`);
+
+  if (hasGasUrl()) {
+    try {
+      const payload = {
+        token: API_TOKEN,
+        sheetType: 'sales_attack_update',
+        companyName: companyName,
+        status: newStatus
+      };
+      await fetch(GAS_WEBAPP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(payload)
+      });
+    } catch (err) {
+      console.warn('Sales kanban update warning:', err);
+    }
+  }
 }
 
 function renderSalesAttackList() {

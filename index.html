@@ -159,6 +159,21 @@
 
         <!-- ===== KANBAN ===== -->
         <section class="content-section" id="section-kanban">
+            <div class="section-toolbar" style="margin-bottom:16px;">
+                <div class="search-box-list">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" placeholder="カンバン内を検索..." id="kanbanSearch">
+                </div>
+                <div class="filter-group" id="kanbanGenreFilter">
+                    <button class="filter-btn active" data-kgraph="all">すべて</button>
+                    <button class="filter-btn" data-kgraph="ドラマ">🎬 ドラマ</button>
+                    <button class="filter-btn" data-kgraph="映画">🍿 映画</button>
+                    <button class="filter-btn" data-kgraph="CM">📺 CM・広告</button>
+                    <button class="filter-btn" data-kgraph="Web">📱 Web・ショート</button>
+                    <button class="filter-btn" data-kgraph="舞台">🎭 舞台</button>
+                </div>
+                <button class="btn btn-primary" onclick="openAddModal()">＋ 新規案件登録</button>
+            </div>
             <div class="kanban-board" id="kanbanBoard">
                 <div class="kanban-column" data-status="情報収集">
                     <div class="kanban-header"><span class="kanban-dot dot-info"></span><h4>情報収集</h4><span class="kanban-count" id="count-info">0</span></div>
