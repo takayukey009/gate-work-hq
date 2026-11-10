@@ -1,12 +1,13 @@
 // ===== GATE Audition Dashboard =====
 const SHEET_ID = '1NBZce4Xqx7FgbXujQlaO15xd-nAZvUmAqBVGRBgIaGU';
-const MANAGED_TALENTS = ['谷口彩菜','寺崎ひな','小久保宏紀','島田和奏','中塚智','太田陽菜','相馬寿樹','実倉萌笑'];
+const MANAGED_TALENTS = ['谷口彩菜','寺崎ひな','島田和奏','中塚智','太田陽菜','相馬寿樹','実倉萌笑'];
+const RETIRED_TALENTS = ['小久保宏紀', '吉富千桜'];
 const TALENT_COLORS = {
-  '谷口彩菜':'#E60012','寺崎ひな':'#3B82F6','小久保宏紀':'#8B5CF6',
+  '谷口彩菜':'#E60012','寺崎ひな':'#3B82F6',
   '島田和奏':'#F59E0B','中塚智':'#10B981','太田陽菜':'#EC4899','相馬寿樹':'#06B6D4','実倉萌笑':'#14B8A6'
 };
 const TALENT_ICONS = {
-  '谷口彩菜':'🌸','寺崎ひな':'⭐','小久保宏紀':'🎭',
+  '谷口彩菜':'🌸','寺崎ひな':'⭐',
   '島田和奏':'🌟','中塚智':'🎬','太田陽菜':'🌻','相馬寿樹':'🕺','実倉萌笑':'🌷'
 };
 const TALENT_CALENDAR_IDS = {
@@ -15,7 +16,6 @@ const TALENT_CALENDAR_IDS = {
   '中塚智': 'satoshi.nakatsuka@gate-agency.com',
   '太田陽菜': 'hina.ota@gate-agency.com',
   '寺崎ひな': 'hina.terasaki@gate-agency.com',
-  '小久保宏紀': 'hiroki.kokubo@gate-agency.com',
   '相馬寿樹': 'toshiki.soma@gate-agency.com',
   '実倉萌笑': 'moe.mikura@gate-agency.com'
 };
@@ -99,23 +99,6 @@ const TALENT_ASSETS = {
     photosFolder: 'https://drive.google.com/drive/folders/1lUxAmoQNmoDv8vRCJdnbE52u-Xd-NhvJ?usp=sharing',
     reels: [],
     mainReel: '',
-    competitor: 'なし'
-  },
-  '小久保宏紀': {
-    name: '小久保宏紀',
-    furigana: 'こくぼ ひろき',
-    age: 21,
-    birthday: '2004/04/05',
-    bornIn: '静岡県',
-    height: '165.5cm',
-    license: '第二種電気工事士, 日本語検定準3級',
-    officialUrl: 'https://gateagency.jp/talent/hirokikokubo/',
-    profilePdf: 'https://drive.google.com/file/d/1MAo6mbQXh38lqiMAxQ8oJAm4bxhjMdDC/view?usp=drive_link',
-    photosFolder: 'https://drive.google.com/drive/folders/1lUxAmoQNmoDv8vRCJdnbE52u-Xd-NhvJ?usp=sharing',
-    reels: [
-      { title: '出演映像リール', url: 'https://youtu.be/LxDR7j2y1JY?si=OEOneMaLgm-GEqq-' }
-    ],
-    mainReel: 'https://youtu.be/LxDR7j2y1JY?si=OEOneMaLgm-GEqq-',
     competitor: 'なし'
   },
   '相馬寿樹': {
@@ -205,7 +188,7 @@ async function fetchSheetData(sheet) {
   }
   // Google Visualization APIの型の制約（日付列にあるテキストが削除される問題）を回避するため、CSVで取得
   const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}&_=${Date.now()}`;
-  const text = await fetchWithTimeout(url, {}, 5000, 'text');
+  const text = await fetchWithTimeout(url, {}, 15000, 'text');
   return parseCSV(text);
 }
 
@@ -268,66 +251,59 @@ function parseCSV(text) {
   return data;
 }
 
-const FALLBACK_DATA = [
-  {ID:'1',タレント名:'中塚智',オーディション名:'映画『夜明けの街』 主演キャスト',ジャンル:'映画',締切日:'2026/05/20',オーディション日:'2026/05/28',ステータス:'書類結果待ち',対応者:'マネージャー',アクション:'写真追加して再送',結果:'未定',備考:'監督指名あり',登録日:'2026/05/10',更新日:'2026/05/12',資料リンク:''},
-  {ID:'2',タレント名:'中塚智',オーディション名:'NHKドラマ ゲスト出演',ジャンル:'ドラマ',締切日:'2026/05/15',オーディション日:'2026/05/22',ステータス:'オーディション済',対応者:'本人',アクション:'',結果:'結果待ち',備考:'2次審査通過',登録日:'2026/05/05',更新日:'2026/05/12',資料リンク:''},
-  {ID:'3',タレント名:'中塚智',オーディション名:'サントリー CM',ジャンル:'CM',締切日:'2026/05/25',オーディション日:'',ステータス:'応募準備',対応者:'マネージャー',アクション:'プロフィール更新必要',結果:'未定',備考:'ギャラ:80万',登録日:'2026/05/11',更新日:'2026/05/12',資料リンク:''},
-  {ID:'4',タレント名:'谷口彩菜',オーディション名:'舞台『蒼の彼方』',ジャンル:'舞台',締切日:'2026/05/18',オーディション日:'2026/05/30',ステータス:'書類結果待ち',対応者:'本人',アクション:'',結果:'未定',備考:'ダンス審査あり',登録日:'2026/05/08',更新日:'2026/05/12',資料リンク:''},
-  {ID:'5',タレント名:'谷口彩菜',オーディション名:'YouTubeドラマ レギュラー',ジャンル:'Web',締切日:'2026/05/30',オーディション日:'',ステータス:'情報収集',対応者:'マネージャー',アクション:'詳細確認中',結果:'未定',備考:'週3回撮影',登録日:'2026/05/12',更新日:'2026/05/12',資料リンク:''},
-  {ID:'6',タレント名:'寺崎ひな',オーディション名:'ABEMA恋愛リアリティ',ジャンル:'バラエティ',締切日:'2026/05/22',オーディション日:'2026/06/01',ステータス:'応募準備',対応者:'本人',アクション:'自己PR動画撮影',結果:'未定',備考:'',登録日:'2026/05/10',更新日:'2026/05/12',資料リンク:''},
-  {ID:'7',タレント名:'寺崎ひな',オーディション名:'ショートドラマ 主演',ジャンル:'ショートドラマ',締切日:'2026/05/16',オーディション日:'2026/05/20',ステータス:'オーディション済',対応者:'マネージャー',アクション:'スケジュール調整',結果:'結果待ち',備考:'先方から好感触',登録日:'2026/05/06',更新日:'2026/05/12',資料リンク:''},
-  {ID:'8',タレント名:'小久保宏紀',オーディション名:'MV出演 アーティスト未定',ジャンル:'MV',締切日:'2026/06/05',オーディション日:'',ステータス:'情報収集',対応者:'マネージャー',アクション:'ギャラ確認',結果:'未定',備考:'',登録日:'2026/05/12',更新日:'2026/05/12',資料リンク:''},
-  {ID:'9',タレント名:'小久保宏紀',オーディション名:'化粧品ブランド モデル',ジャンル:'広告',締切日:'2026/05/19',オーディション日:'2026/05/26',ステータス:'書類結果待ち',対応者:'本人',アクション:'',結果:'未定',備考:'コンポジット写真必須',登録日:'2026/05/09',更新日:'2026/05/11',資料リンク:''},
-  {ID:'10',タレント名:'島田和奏',オーディション名:'インディーズ映画 助演',ジャンル:'映画',締切日:'2026/06/10',オーディション日:'',ステータス:'情報収集',対応者:'マネージャー',アクション:'監督にコンタクト',結果:'未定',備考:'低予算だが良作の可能性',登録日:'2026/05/12',更新日:'2026/05/12',資料リンク:''},
-  {ID:'11',タレント名:'島田和奏',オーディション名:'アパレルブランド シーズンモデル',ジャンル:'CM',締切日:'2026/05/14',オーディション日:'2026/05/17',ステータス:'完了',対応者:'本人',アクション:'',結果:'合格',備考:'初のCM案件！',登録日:'2026/04/28',更新日:'2026/05/10',資料リンク:''},
-  {ID:'12',タレント名:'太田陽菜',オーディション名:'舞台『月光』 ヒロイン',ジャンル:'舞台',締切日:'2026/04/20',オーディション日:'2026/05/05',ステータス:'完了',対応者:'本人',アクション:'',結果:'不合格',備考:'次回作で再挑戦',登録日:'2026/04/15',更新日:'2026/05/08',資料リンク:''},
-  {ID:'13',タレント名:'太田陽菜',オーディション名:'ドラマ『翔ぶ季節』 レギュラー',ジャンル:'ドラマ',締切日:'2026/05/28',オーディション日:'2026/06/05',ステータス:'応募準備',対応者:'マネージャー',アクション:'オーディション用写真手配',結果:'未定',備考:'人気原作',登録日:'2026/05/11',更新日:'2026/05/12',資料リンク:''},
-  {ID:'14',タレント名:'谷口彩菜',オーディション名:'アパレルECモデル',ジャンル:'CM',締切日:'2026/06/01',オーディション日:'',ステータス:'情報収集',対応者:'本人',アクション:'',結果:'未定',備考:'',登録日:'2026/05/12',更新日:'2026/05/12',資料リンク:''},
-  {ID:'35',タレント名:'寺崎ひな',オーディション名:'うどんチェーン店関係M亀　広告 キャスト選考',ジャンル:'広告',締切日:'2026/05/22',オーディション日:'',ステータス:'完了',対応者:'マネージャー',アクション:'',結果:'不合格',備考:'演出コンテ：https://app.jector.jp/dl/de1Wo73naFGvM3ajrYiaVssw PASS:0522',登録日:'2026/05/20',更新日:'2026/05/27',資料リンク:''},
-  {ID:'36',タレント名:'島田和奏',オーディション名:'男性お笑い番組新コント配信番組出演者募集（仮タイトル「似顔絵師の奴」）',ジャンル:'バラエティ',締切日:'2026/11/04',オーディション日:'',ステータス:'応募準備',対応者:'マネージャー',アクション:'11/4(水)15時締切：現状写真・演技映像資料・プロフィール（PDF/JPEG、ファイル名フルネーム）送付',結果:'未定',備考:'【情報漏洩注意】クライアント:ジャルジャル様（吉本興業株式会社） / 媒体:Netflix（現状2年間独占配信予定・変動可能性あり） / 内容:〇〇な奴シリーズ 仮「似顔絵師の奴」彼女役（20〜30代女性1名・泣く演技あり・アドリブ可能性高） 参考:https://youtu.be/B6fsOcuNE_0?si=O-8XMPAujZjSCbZ_ / 撮影日:2026/11/10(火) 都内近郊予定 / 出演料:5万円+税（交通費込） / 選考:書類選考のみ / 提出:①島田和奏 ②27歳 ③11/10終日OK ④現状写真 ⑤演技映像資料',登録日:'2026/11/04',更新日:'2026/11/04',資料リンク:'https://youtu.be/X_RS0SwuSDs'},
-  {ID:'37',タレント名:'実倉萌笑',オーディション名:'男性お笑い番組新コント配信番組出演者募集（仮タイトル「似顔絵師の奴」）',ジャンル:'バラエティ',締切日:'2026/11/04',オーディション日:'',ステータス:'応募準備',対応者:'マネージャー',アクション:'11/4(水)15時締切：現状写真・演技映像資料・プロフィール（PDF/JPEG、ファイル名フルネーム）送付',結果:'未定',備考:'【情報漏洩注意】クライアント:ジャルジャル様（吉本興業株式会社） / 媒体:Netflix（現状2年間独占配信予定・変動可能性あり） / 内容:〇〇な奴シリーズ 仮「似顔絵師の奴」彼女役（20〜30代女性1名・泣く演技あり・アドリブ可能性高） 参考:https://youtu.be/B6fsOcuNE_0?si=O-8XMPAujZjSCbZ_ / 撮影日:2026/11/10(火) 都内近郊予定 / 出演料:5万円+税（交通費込） / 選考:書類選考のみ / 提出:①実倉萌笑 ②26歳 ③11/10終日OK ④現状写真 ⑤演技映像資料',登録日:'2026/11/04',更新日:'2026/11/04',資料リンク:'https://drive.google.com/drive/folders/1BZbhN4LKQlf0hvJrcNamAPmjwf49I2nD'},
-];
+const FALLBACK_DATA = [];
+
+function filterActiveTalentsData(rows) {
+  if (!Array.isArray(rows)) return [];
+  return rows.filter(d => {
+    const t = (d['タレント名'] || '').trim();
+    return !RETIRED_TALENTS.includes(t) && t !== '小久保';
+  });
+}
 
 async function loadData() {
   try {
-    allData = await fetchSheetData('シート1');
-    try {
-      allSalesAttackData = await fetchSheetData('営業アタック');
-    } catch (salesErr) {
-      console.warn('営業アタックデータの読み込みに失敗しました:', salesErr.message);
-      allSalesAttackData = [];
-    }
-    try {
-      if (hasGasUrl()) {
-        const json = await fetchWithTimeout(withToken(GAS_WEBAPP_URL + '?action=news'), {}, 5000);
-        if (json.success && json.data) {
-          allNewsData = json.data;
-        } else {
-          throw new Error((json && json.error) || 'APIエラー');
-        }
+    const rawData = await fetchSheetData('シート1');
+    allData = filterActiveTalentsData(rawData);
+  } catch (e) {
+    console.warn('スプレッドシート読み込み失敗:', e.message);
+    allData = FALLBACK_DATA;
+  }
+
+  try {
+    allSalesAttackData = await fetchSheetData('営業アタック');
+  } catch (salesErr) {
+    console.warn('営業アタックデータの読み込みに失敗しました:', salesErr.message);
+    allSalesAttackData = [];
+  }
+
+  try {
+    if (hasGasUrl()) {
+      const json = await fetchWithTimeout(withToken(GAS_WEBAPP_URL + '?action=news'), {}, 8000);
+      if (json.success && json.data) {
+        allNewsData = json.data;
       } else {
         allNewsData = [];
       }
-    } catch (newsErr) {
-      console.warn('ニュースデータの読み込みに失敗しました:', newsErr.message);
+    } else {
       allNewsData = [];
     }
+  } catch (newsErr) {
+    console.warn('ニュースデータの読み込みに失敗しました:', newsErr.message);
+    allNewsData = [];
+  }
+
+  try {
     renderAll();
-  } catch (e) {
-    console.warn('スプレッドシート読み込み失敗。フォールバックデータを使用:', e.message);
-    allData = FALLBACK_DATA;
-    allSalesAttackData = [];
-    try {
-      renderAll();
-    } catch (renderErr) {
-      console.error('フォールバックデータでの描画に失敗しました:', renderErr.message);
-    }
+  } catch (renderErr) {
+    console.error('描画中にエラーが発生しました:', renderErr);
   } finally {
     const overlay = document.getElementById('loadingOverlay');
     if (overlay) {
       overlay.classList.add('hidden');
     }
   }
+
   // 売上データを非同期で取得（ダッシュボード表示後）
   loadSalesData();
   // カレンダーデータを非同期で取得
@@ -341,7 +317,7 @@ async function loadCalendarData() {
     const start = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
     const end = new Date(now.getFullYear(), now.getMonth() + 2, 0).toISOString();
     const url = withToken(`${GAS_WEBAPP_URL}?action=calendar&start=${start}&end=${end}`);
-    const json = await fetchWithTimeout(url, { redirect: 'follow', mode: 'cors' }, 5000);
+    const json = await fetchWithTimeout(url, { redirect: 'follow', mode: 'cors' }, 25000);
     if (json.success && json.events) {
       calendarEvents = json.events;
       console.log(`カレンダー: ${calendarEvents.length}件取得`);
@@ -361,17 +337,25 @@ function getFiltered() {
 
 function parseDate(s) {
   if (!s) return null;
-  // Handle serial dates from Google Sheets (e.g. 46157.0)
-  if (!isNaN(s) && !isNaN(parseFloat(s))) {
-    const serial = parseFloat(s);
-    // Excel/Sheets serial dates start from Dec 30, 1899
-    return new Date((serial - 25569) * 86400000);
+  if (s instanceof Date) {
+    return isNaN(s.getTime()) ? null : s;
   }
+  // Handle serial dates from Google Sheets (e.g. 46157.0)
+  if (typeof s === 'number' || (!isNaN(s) && !isNaN(parseFloat(s)) && String(s).trim().match(/^\d+(\.\d+)?$/))) {
+    const serial = parseFloat(s);
+    if (serial > 20000 && serial < 100000) {
+      return new Date((serial - 25569) * 86400000);
+    }
+  }
+  const str = String(s).trim();
+  if (!str) return null;
   // Handle "Date(2026,4,20)" format from Google Sheets
-  const dm = s.match(/Date\((\d+),(\d+),(\d+)\)/);
+  const dm = str.match(/Date\((\d+),(\d+),(\d+)\)/);
   if (dm) return new Date(+dm[1], +dm[2], +dm[3]);
-  const d = new Date(s);
-  return isNaN(d) ? null : d;
+  // Handle date range like "2026/11/10〜11/12" or "2026/11/10(火)"
+  const firstPart = str.split(/[〜~]/)[0].replace(/\([日月火水木金土]\)/g, '').trim();
+  const d = new Date(firstPart);
+  return isNaN(d.getTime()) ? null : d;
 }
 
 function fmtDate(s) {
@@ -1383,7 +1367,7 @@ async function loadCalendarDataForMonth() {
       return d.getMonth() === calMonth && d.getFullYear() === calYear;
     });
     if (hasData) return;
-    const json = await fetchWithTimeout(withToken(`${GAS_WEBAPP_URL}?action=calendar&start=${start}&end=${end}`), {}, 5000);
+    const json = await fetchWithTimeout(withToken(`${GAS_WEBAPP_URL}?action=calendar&start=${start}&end=${end}`), {}, 25000);
     if (json.success && json.events) {
       calendarEvents = [...calendarEvents, ...json.events];
       renderCalendar();
@@ -1651,7 +1635,6 @@ function parseAuditionText(raw) {
     '中塚': '中塚智', '智': '中塚智',
     '太田': '太田陽菜', '陽菜': '太田陽菜',
     '寺崎': '寺崎ひな', 'ひな': '寺崎ひな',
-    '小久保': '小久保宏紀', '宏紀': '小久保宏紀',
     '相馬': '相馬寿樹', '寿樹': '相馬寿樹',
     '実倉': '実倉萌笑', '萌笑': '実倉萌笑',
     '吉富': '吉富千桜', '千桜': '吉富千桜'
@@ -2884,8 +2867,6 @@ function normalizeTalentFullName(name) {
   const map = {
     '島田': '島田和奏',
     '島田和奏': '島田和奏',
-    '小久保': '小久保宏紀',
-    '小久保宏紀': '小久保宏紀',
     '谷口': '谷口彩菜',
     '谷口彩菜': '谷口彩菜',
     '太田': '太田陽菜',
@@ -3698,7 +3679,6 @@ let weeklyTextFormat = 'simple';
 const TALENT_SHORT_NAMES = {
   '谷口彩菜': '谷口',
   '寺崎ひな': '寺崎',
-  '小久保宏紀': '小久保',
   '島田和奏': '島田',
   '中塚智': '中塚',
   '太田陽菜': '太田',
@@ -3835,14 +3815,6 @@ function buildWeeklyReportData() {
     ? [...MANAGED_TALENTS]
     : MANAGED_TALENTS.filter(t => t === currentTalent);
 
-  // 追加タレントがデータ内にいれば補完
-  if (currentTalent === 'all') {
-    allData.forEach(d => {
-      const n = normalizeTalentFullName(d['タレント名']);
-      if (n && !talents.includes(n)) talents.push(n);
-    });
-  }
-
   const inRange = (dt, s, e) => dt && dt >= s && dt <= e;
 
   const talentReports = talents.map(talent => {
@@ -3859,6 +3831,7 @@ function buildWeeklyReportData() {
       const isFail = result.startsWith('不合格') || result.startsWith('見送り') || result.startsWith('辞退');
       const isPass = result === '合格' || status === '受注';
       const isActive = status !== '完了' && !isFail;
+      const stagInfo = getStagnantInfo(d);
 
       const regDt = parseDate(d['登録日']);
       const updDt = parseDate(d['更新日']);
@@ -3869,13 +3842,13 @@ function buildWeeklyReportData() {
       const audDts = audDateStrs.map(s => parseDate(s)).filter(Boolean);
 
       const reasons = [];
-      let latestTouch = updDt || regDt || dlDt || null;
+      let latestTouch = updDt || regDt || resDt || dlDt || null;
       if (inRange(regDt, win.start, win.end)) reasons.push(`🆕 新規(${fmtDate(d['登録日'])})`);
       else if (inRange(updDt, win.start, win.end)) reasons.push(`🔄 更新(${fmtDate(d['更新日'])})`);
       if (inRange(dlDt, win.start, win.end)) reasons.push(`〆切(${fmtDate(d['締切日'])})`);
-      if (audDts.some(dt => inRange(dt, win.start, win.end))) reasons.push('🎤 今週AD');
-      if (inRange(resDt, win.start, win.end)) reasons.push(`📋 結果発表(${fmtDate(d['結果発表日'] || d['結果発表'])})`);
-      if (inRange(relDt, win.start, win.end)) reasons.push(`📺 公開(${fmtDate(d['公開日'])})`);
+      if (audDts.some(dt => inRange(dt, win.start, win.scheduleEnd))) reasons.push('🎤 AD予定');
+      if (inRange(resDt, win.start, win.scheduleEnd)) reasons.push(`📋 結果発表(${fmtDate(d['結果発表日'] || d['結果発表'])})`);
+      if (inRange(relDt, win.start, win.scheduleEnd)) reasons.push(`📺 公開(${fmtDate(d['公開日'])})`);
 
       const entry = {
         raw: d,
@@ -3894,13 +3867,20 @@ function buildWeeklyReportData() {
         isActive,
         reasons,
         isPeriodUpdate: reasons.length > 0,
-        sortTime: latestTouch ? latestTouch.getTime() : 0
+        sortTime: latestTouch ? latestTouch.getTime() : ( Number(d['ID']) || 0 )
       };
 
-      if (entry.isPeriodUpdate) {
-        periodAuditions.push(entry);
-      } else if (isActive || isPass) {
-        activeAuditions.push(entry);
+      const maxKnownDt = [updDt, regDt, resDt, relDt, dlDt, ...audDts].filter(Boolean).sort((a, b) => b - a)[0] || null;
+      const isWithin21Days = maxKnownDt && ((win.end - maxKnownDt) <= 21 * 86400000) && ((maxKnownDt - win.scheduleEnd) <= 30 * 86400000);
+
+      if (entry.isPeriodUpdate && !isFail) {
+        if (!periodAuditions.some(x => x.name === entry.name)) {
+          periodAuditions.push(entry);
+        }
+      } else if (isActive && !stagInfo && isWithin21Days) {
+        if (!activeAuditions.some(x => x.name === entry.name)) {
+          activeAuditions.push(entry);
+        }
       }
 
       // スプシ上の日程（AD日・公開日・結果発表日・今後の締切）をスケジュールへ収集
@@ -4010,8 +3990,9 @@ function buildWeeklyReportData() {
       const nextDt = parseDate(s['次回アクション予定日']);
       const st = s['アタックステータス'] || '';
       const isRecentSales = inRange(lastDt, win.start, win.end) || inRange(updDt, win.start, win.end) || inRange(nextDt, win.start, win.scheduleEnd);
-      const isOngoingSales = ['コンタクト中', '面談済', '案件検討中', 'WS講師依頼済', '受注・決定'].includes(st);
-      if (isRecentSales || isOngoingSales) {
+      const recentTouch = [lastDt, updDt, nextDt].filter(Boolean).sort((a, b) => b - a)[0] || null;
+      const isRecentOngoing = ['コンタクト中', '面談済', '案件検討中', 'WS講師依頼済'].includes(st) && recentTouch && ((win.end - recentTouch) <= 21 * 86400000);
+      if (isRecentSales || isRecentOngoing) {
         salesMoves.push({
           id: s['ID'] || s['社名'],
           company: s['社名'] || '',
@@ -4044,22 +4025,14 @@ function buildWeeklyReportData() {
     };
   });
 
-  // 全タレントで期間内更新が0件の場合（フォールバックデータ等）、進行中案件をハイライト対象として自動表示
   const anyStrictPeriodUpdate = talentReports.some(r => r.periodAuditions.length > 0 || r.schedules.length > 0 || r.salesMoves.some(s => s.isRecentSales));
 
   talentReports.forEach(r => {
     r.periodAuditions.sort((a, b) => b.sortTime - a.sortTime);
     r.activeAuditions.sort((a, b) => b.sortTime - a.sortTime);
 
-    if (r.periodAuditions.length > 0) {
-      // 期間内更新がある場合は、重要な進行中案件（2次以降AD・応募準備・書類結果待ち・結果待ち・受注）も最大3件補足
-      const extraActive = r.activeAuditions.filter(a => ['受注', '2次以降AD', '応募準備', '書類結果待ち', '結果待ち'].includes(a.status)).slice(0, 3);
-      r.displayAuditions = [...r.periodAuditions, ...extraActive];
-    } else if (!anyStrictPeriodUpdate || r.activeAuditions.some(a => ['受注', '2次以降AD', '応募準備', '書類結果待ち', '結果待ち'].includes(a.status))) {
-      r.displayAuditions = r.activeAuditions.filter(a => ['受注', '2次以降AD', '応募準備', '書類結果待ち', '結果待ち'].includes(a.status)).slice(0, 4);
-    } else {
-      r.displayAuditions = [];
-    }
+    const extraActive = r.activeAuditions.filter(a => ['受注', '2次以降AD', '応募準備', '書類結果待ち', '結果待ち'].includes(a.status)).slice(0, 3);
+    r.displayAuditions = [...r.periodAuditions, ...extraActive];
 
     r.hasMovement = r.displayAuditions.length > 0 || r.schedules.length > 0 || r.salesMoves.length > 0 || r.newsMoves.length > 0;
     r.oneLineSummary = formatTalentOneLineSummary(r);

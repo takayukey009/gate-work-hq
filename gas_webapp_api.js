@@ -462,8 +462,7 @@ function getTalentCalendars() {
   const cals = {
     '谷口彩菜': 'ayana.taniguchi@gate-agency.com',
     '寺崎ひな': 'hina.terasaki@gate-agency.com',
-    '小久保宏紀': 'hiroki.kokubo@gate-agency.com',
-    '島田和奏': 'wakana.shimada@gate-agency.com',
+      '島田和奏': 'wakana.shimada@gate-agency.com',
     '中塚智': 'satoshi.nakatsuka@gate-agency.com',
     '太田陽菜': 'hina.ota@gate-agency.com',
     '相馬寿樹': 'toshiki.soma@gate-agency.com',
