@@ -26,6 +26,10 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
                 <span>ダッシュボード</span>
             </a>
+            <a href="#" class="nav-item" data-section="weekly_report" id="nav-weekly_report">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg>
+                <span>週次報告（ハイライト）</span>
+            </a>
             <a href="#" class="nav-item" data-section="kanban" id="nav-kanban">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg>
                 <span>カンバン</span>
@@ -101,6 +105,35 @@
                 <!-- Rendered by JS -->
             </div>
 
+            <!-- Weekly Report Quick Highlight Banner -->
+            <div class="weekly-dash-banner" id="dashWeeklyHighlightBanner">
+                <!-- Rendered by JS -->
+            </div>
+
+            <!-- Stagnant & Alert Panel (長期放置・書類結果待ち・締切超過) -->
+            <div class="stagnant-alert-panel hidden" id="stagnantAlertPanel">
+                <div class="stagnant-panel-header">
+                    <div class="stagnant-header-left">
+                        <span class="stagnant-pulse-icon">⚠️</span>
+                        <h2>停滞・要確認アラート</h2>
+                        <span class="stagnant-badge" id="stagnantCount">0</span>
+                        <span class="stagnant-badge-sub" id="stagnantSummary"></span>
+                    </div>
+                    <div class="stagnant-header-right">
+                        <div class="stagnant-filter-pills" id="stagnantFilterPills">
+                            <button class="stagnant-pill active" data-stagnant-filter="all">すべて</button>
+                            <button class="stagnant-pill" data-stagnant-filter="deadline">🚨 締切超過</button>
+                            <button class="stagnant-pill" data-stagnant-filter="result">⏳ 結果待ち停滞</button>
+                            <button class="stagnant-pill" data-stagnant-filter="info">💤 情報収集停滞</button>
+                        </div>
+                        <button class="btn-toggle-stagnant" id="btnToggleStagnant" title="表示切り替え">▼</button>
+                    </div>
+                </div>
+                <div class="stagnant-list" id="stagnantList">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+
             <!-- Action Required Panel -->
             <div class="action-panel" id="actionPanel">
                 <div class="action-panel-header">
@@ -171,6 +204,7 @@
                     <button class="filter-btn" data-kgraph="CM">📺 CM・広告</button>
                     <button class="filter-btn" data-kgraph="Web">📱 Web・ショート</button>
                     <button class="filter-btn" data-kgraph="舞台">🎭 舞台</button>
+                    <button class="filter-btn filter-btn-stagnant" id="btnKanbanStagnantOnly" onclick="toggleKanbanStagnantFilter()">⚠️ 停滞中のみ</button>
                 </div>
                 <button class="btn btn-primary" onclick="openAddModal()">＋ 新規案件登録</button>
             </div>
@@ -470,6 +504,80 @@
                 内田チーフ・佐藤現場Mの項目は、十河シート内の記述からの<b>仮置き</b>です。実物のシートが出たら差し替えてください。
             </div>
         </section>
+
+        <!-- ===== WEEKLY REPORT (週次報告・ハイライト) ===== -->
+        <section class="content-section" id="section-weekly_report">
+            <div class="weekly-report-header-card">
+                <div class="weekly-report-title-row">
+                    <div>
+                        <span class="weekly-eyebrow">WEEKLY HIGHLIGHT REPORT</span>
+                        <h2 class="weekly-main-title">📢 週次報告・タレント別ハイライト</h2>
+                        <p class="weekly-sub-desc" id="weeklyPeriodLabel">アップデートがあったタレントの動き（案件・営業）とGoogleカレンダーの予定を自動集約します。</p>
+                    </div>
+                    <div class="weekly-header-actions">
+                        <button class="btn btn-primary" onclick="copyWeeklyReportText()">
+                            📋 報告用テキストをコピー
+                        </button>
+                        <button class="btn btn-secondary" onclick="window.print()">
+                            🖨️ 印刷 / PDF
+                        </button>
+                    </div>
+                </div>
+
+                <div class="weekly-controls-row">
+                    <div class="filter-group" id="weeklyPeriodFilter">
+                        <button class="filter-btn active" data-wperiod="7d" onclick="setWeeklyPeriod('7d')">直近7日間</button>
+                        <button class="filter-btn" data-wperiod="this_week" onclick="setWeeklyPeriod('this_week')">今週（月〜日）</button>
+                        <button class="filter-btn" data-wperiod="last_week" onclick="setWeeklyPeriod('last_week')">先週（月〜日）</button>
+                        <button class="filter-btn" data-wperiod="14d" onclick="setWeeklyPeriod('14d')">直近14日間</button>
+                        <button class="filter-btn" data-wperiod="30d" onclick="setWeeklyPeriod('30d')">直近30日間</button>
+                    </div>
+                    <div class="weekly-toggles-group">
+                        <button class="filter-btn active" id="btnWeeklyActiveOnly" onclick="toggleWeeklyActiveOnly()">
+                            🔥 動き・予定ありのみ表示
+                        </button>
+                        <button class="filter-btn active" id="btnWeeklyIncludeCal" onclick="toggleWeeklyIncludeCal()">
+                            📅 Googleカレンダー予定を含める
+                        </button>
+                    </div>
+                </div>
+
+                <div class="weekly-kpi-strip" id="weeklyKpiStrip">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+
+            <!-- 報告会用 ワンライン要約ボード (谷口 ～ / 中塚 ～) -->
+            <div class="card weekly-digest-card" style="margin-bottom: 24px;">
+                <div class="card-header weekly-digest-header">
+                    <div>
+                        <h3><span class="accent-letter">Q</span>UICK DIGEST</h3>
+                        <span class="card-subtitle">毎週の報告会用・タレント別まとめ（「谷口　～」「中塚　～」形式）</span>
+                    </div>
+                    <div class="weekly-digest-actions">
+                        <div class="filter-group">
+                            <button class="filter-btn active" id="btnDigestFormatSimple" onclick="setWeeklyTextFormat('simple')">シンプル（谷口　～）</button>
+                            <button class="filter-btn" id="btnDigestFormatDetail" onclick="setWeeklyTextFormat('detail')">箇条書き詳細</button>
+                        </div>
+                        <button class="btn btn-secondary btn-sm" onclick="toggleWeeklyRawText()">📝 テキスト編集/確認</button>
+                        <button class="btn btn-primary btn-sm" onclick="copyWeeklyReportText()">📋 コピー</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="weekly-digest-list" id="weeklyDigestList">
+                        <!-- Rendered by JS -->
+                    </div>
+                    <div class="weekly-raw-text-wrap hidden" id="weeklyRawTextWrap">
+                        <textarea class="weekly-raw-textarea" id="weeklyReportTextarea" rows="8" readonly onclick="this.select()"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- タレント別 詳細ハイライトカード -->
+            <div class="weekly-cards-grid" id="weeklyTalentCardsGrid">
+                <!-- Rendered by JS -->
+            </div>
+        </section>
     </main>
 
     <!-- FAB: 新規追加ボタン -->
@@ -483,6 +591,20 @@
             <div class="modal-header">
                 <h2 id="modalTitle">＋ 案件追加</h2>
                 <button class="modal-close" onclick="closeAddModal()">✕</button>
+            </div>
+            <!-- スマート自動パース入力セクション -->
+            <div class="smart-paste-section">
+                <div class="smart-paste-header" onclick="toggleSmartPaste()">
+                    <span class="smart-paste-title">🪄 メール・打診文の貼り付けで自動入力</span>
+                    <button type="button" class="btn-toggle-smart" id="toggleSmartBtn">＋ 開く</button>
+                </div>
+                <div class="smart-paste-body hidden" id="smartPasteBody">
+                    <textarea id="smartPasteInput" class="smart-paste-textarea" placeholder="メール本文や募集要項をここに貼り付けてください。タレント名・案件名・締切日・オーディション日・条件等を自動判定して下のフォームに自動反映します。"></textarea>
+                    <div class="smart-paste-actions">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="clearSmartPaste()">クリア</button>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="applySmartParse()">⚡ 自動解析してフォームに反映</button>
+                    </div>
+                </div>
             </div>
             <form id="addForm" onsubmit="return handleAddSubmit(event)">
                 <div class="form-grid">
@@ -503,11 +625,13 @@
                         <select id="f-talent" required>
                             <option value="">選択...</option>
                             <option value="谷口彩菜">🌸 谷口彩菜</option>
-                            <option value="寺崎ひな">⭐ 寺崎ひな</option>
-                            <option value="小久保宏紀">🎭 小久保宏紀</option>
                             <option value="島田和奏">🌟 島田和奏</option>
                             <option value="中塚智">🎬 中塚智</option>
                             <option value="太田陽菜">🌻 太田陽菜</option>
+                            <option value="寺崎ひな">⭐ 寺崎ひな</option>
+                            <option value="小久保宏紀">🎭 小久保宏紀</option>
+                            <option value="相馬寿樹">🕺 相馬寿樹</option>
+                            <option value="実倉萌笑">🌷 実倉萌笑</option>
                             <option value="吉富千桜">🍒 吉富千桜</option>
                         </select>
                     </div>
@@ -603,6 +727,12 @@
                             </div>
                         </div>
                     </div>
+                </div>
+                <div class="form-group form-wide cal-sync-group">
+                    <label class="checkbox-label" style="display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--text-secondary);cursor:pointer;padding:8px 12px;background:var(--bg-alt);border-radius:var(--radius);border:1px solid var(--border);">
+                        <input type="checkbox" id="f-sync-cal" checked style="width:16px;height:16px;accent-color:var(--accent);">
+                        <span>📅 タレントのGoogleカレンダーにも予定を自動登録する（締切・AD候補日）</span>
+                    </label>
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeAddModal()">キャンセル</button>
@@ -716,6 +846,106 @@
                     <button type="submit" class="btn btn-primary" id="salesSubmitBtn">
                         <span id="salesSubmitText">追加する</span>
                         <span id="salesSubmitSpinner" class="btn-spinner hidden"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 営業アタック編集モーダル -->
+    <div class="modal-overlay" id="salesEditModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>✏️ 営業アタック情報の編集</h2>
+                <button class="modal-close" onclick="closeSalesEditModal()">✕</button>
+            </div>
+            <form id="salesEditForm" onsubmit="return handleSalesEditSubmit(event)">
+                <input type="hidden" id="se-id">
+                <div class="form-grid">
+                    <div class="form-group form-wide">
+                        <label for="se-companyName">社名 *</label>
+                        <input type="text" id="se-companyName" placeholder="例: 株式会社〇〇テレビ" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="se-companyType">アプローチ先種別 *</label>
+                        <select id="se-companyType" required>
+                            <option value="制作会社">🎬 制作会社</option>
+                            <option value="代理店">📢 代理店</option>
+                            <option value="キャスティング会社">👥 キャスティング会社</option>
+                            <option value="クライアント直">🏢 クライアント直</option>
+                            <option value="レーベル">🎵 レーベル</option>
+                            <option value="テレビ局">📺 テレビ局</option>
+                            <option value="メディア">📰 メディア</option>
+                            <option value="出版社">📚 出版社</option>
+                            <option value="その他">📋 その他</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="se-contactName">担当者名</label>
+                        <input type="text" id="se-contactName" placeholder="例: 山田太郎 プロデューサー">
+                    </div>
+                    <div class="form-group form-wide">
+                        <label for="se-contactInfo">連絡先（電話/メールなど）</label>
+                        <input type="text" id="se-contactInfo" placeholder="例: 090-XXXX-XXXX, test@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="se-lastApproachDate">最終アプローチ日</label>
+                        <input type="date" id="se-lastApproachDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="se-approachMethod">アプローチ方法</label>
+                        <select id="se-approachMethod">
+                            <option value="">選択...</option>
+                            <option value="メール">📧 メール</option>
+                            <option value="対面">🤝 対面</option>
+                            <option value="電話">📞 電話</option>
+                            <option value="会食">🍶 会食</option>
+                            <option value="イベント">🎪 イベント</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="se-status">アタックステータス</label>
+                        <select id="se-status">
+                            <option value="未アプローチ">未アプローチ</option>
+                            <option value="コンタクト中">コンタクト中</option>
+                            <option value="面談済">面談済</option>
+                            <option value="案件検討中">案件検討中</option>
+                            <option value="WS講師依頼済">WS講師依頼済</option>
+                            <option value="受注・決定">受注・決定</option>
+                            <option value="休眠">休眠</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="se-rating">確度/感触</label>
+                        <select id="se-rating">
+                            <option value="A">🔥 A (超有力・案件直結)</option>
+                            <option value="B">✨ B (好感触・継続)</option>
+                            <option value="C" selected>📋 C (挨拶済・普通)</option>
+                            <option value="D">💤 D (反応薄・長期)</option>
+                        </select>
+                    </div>
+                    <div class="form-group form-wide">
+                        <label for="se-talentName">提案タレント（複数選択はカンマ区切り）</label>
+                        <input type="text" id="se-talentName" placeholder="例: 谷口彩菜, 島田和奏">
+                    </div>
+                    <div class="form-group">
+                        <label for="se-nextApproachDate">次回アクション予定日</label>
+                        <input type="date" id="se-nextApproachDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="se-nextApproachAction">次回アクション内容</label>
+                        <input type="text" id="se-nextApproachAction" placeholder="例: 秋ドラマの打診フォロー">
+                    </div>
+                    <div class="form-group form-wide">
+                        <label for="se-notes">備考/メモ</label>
+                        <textarea id="se-notes" rows="3" placeholder="名刺画像URLや会話メモ" style="padding:10px 14px; border:1.5px solid var(--border); border-radius:var(--radius); font-size:.9rem; font-family:var(--font); background:var(--bg); color:var(--text); width:100%; outline:none; transition:all var(--transition); resize:vertical;"></textarea>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeSalesEditModal()">キャンセル</button>
+                    <button type="submit" class="btn btn-primary" id="salesEditSubmitBtn">
+                        <span id="salesEditSubmitText">更新する</span>
+                        <span id="salesEditSubmitSpinner" class="btn-spinner hidden"></span>
                     </button>
                 </div>
             </form>

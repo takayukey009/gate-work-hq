@@ -1,13 +1,23 @@
 // ===== GATE Audition Dashboard =====
 const SHEET_ID = '1NBZce4Xqx7FgbXujQlaO15xd-nAZvUmAqBVGRBgIaGU';
-const MANAGED_TALENTS = ['谷口彩菜','寺崎ひな','小久保宏紀','島田和奏','中塚智','太田陽菜','相馬寿樹'];
+const MANAGED_TALENTS = ['谷口彩菜','寺崎ひな','小久保宏紀','島田和奏','中塚智','太田陽菜','相馬寿樹','実倉萌笑'];
 const TALENT_COLORS = {
   '谷口彩菜':'#E60012','寺崎ひな':'#3B82F6','小久保宏紀':'#8B5CF6',
-  '島田和奏':'#F59E0B','中塚智':'#10B981','太田陽菜':'#EC4899','相馬寿樹':'#06B6D4'
+  '島田和奏':'#F59E0B','中塚智':'#10B981','太田陽菜':'#EC4899','相馬寿樹':'#06B6D4','実倉萌笑':'#14B8A6'
 };
 const TALENT_ICONS = {
   '谷口彩菜':'🌸','寺崎ひな':'⭐','小久保宏紀':'🎭',
-  '島田和奏':'🌟','中塚智':'🎬','太田陽菜':'🌻','相馬寿樹':'🕺'
+  '島田和奏':'🌟','中塚智':'🎬','太田陽菜':'🌻','相馬寿樹':'🕺','実倉萌笑':'🌷'
+};
+const TALENT_CALENDAR_IDS = {
+  '谷口彩菜': 'ayana.taniguchi@gate-agency.com',
+  '島田和奏': 'wakana.shimada@gate-agency.com',
+  '中塚智': 'satoshi.nakatsuka@gate-agency.com',
+  '太田陽菜': 'hina.ota@gate-agency.com',
+  '寺崎ひな': 'hina.terasaki@gate-agency.com',
+  '小久保宏紀': 'hiroki.kokubo@gate-agency.com',
+  '相馬寿樹': 'toshiki.soma@gate-agency.com',
+  '実倉萌笑': 'moe.mikura@gate-agency.com'
 };
 const STATUS_ORDER = ['情報収集','応募準備','書類結果待ち','2次以降AD','結果待ち','受注','完了'];
 const STATUS_MAP = {info:'情報収集',prep:'応募準備',sent:'書類結果待ち',done:'2次以降AD',wait:'結果待ち',order:'受注',complete:'完了'};
@@ -123,6 +133,20 @@ const TALENT_ASSETS = {
     ],
     mainReel: 'https://youtu.be/WmuDVNX2Q5I',
     competitor: 'なし'
+  },
+  '実倉萌笑': {
+    name: '実倉萌笑',
+    furigana: 'みくら もえ',
+    age: 26,
+    photosFolder: 'https://drive.google.com/drive/folders/1BZbhN4LKQlf0hvJrcNamAPmjwf49I2nD',
+    reels: [],
+    mainReel: '',
+    competitor: 'なし',
+    _note: '2026年追加'
+  },
+  '_soma_legacy': {
+    mainReel: 'https://youtu.be/WmuDVNX2Q5I',
+    competitor: 'なし'
   }
 };
 
@@ -145,6 +169,9 @@ let salesSearch = '';
 let salesFilter = 'all';
 let kanbanSearch = '';
 let kanbanGenre = 'all';
+let kanbanStagnantOnly = false;
+let stagnantFilter = 'all';
+let stagnantCollapsed = false;
 let currentTalent = 'all';
 let currentSection = 'dashboard';
 let calYear, calMonth;
@@ -257,6 +284,8 @@ const FALLBACK_DATA = [
   {ID:'13',タレント名:'太田陽菜',オーディション名:'ドラマ『翔ぶ季節』 レギュラー',ジャンル:'ドラマ',締切日:'2026/05/28',オーディション日:'2026/06/05',ステータス:'応募準備',対応者:'マネージャー',アクション:'オーディション用写真手配',結果:'未定',備考:'人気原作',登録日:'2026/05/11',更新日:'2026/05/12',資料リンク:''},
   {ID:'14',タレント名:'谷口彩菜',オーディション名:'アパレルECモデル',ジャンル:'CM',締切日:'2026/06/01',オーディション日:'',ステータス:'情報収集',対応者:'本人',アクション:'',結果:'未定',備考:'',登録日:'2026/05/12',更新日:'2026/05/12',資料リンク:''},
   {ID:'35',タレント名:'寺崎ひな',オーディション名:'うどんチェーン店関係M亀　広告 キャスト選考',ジャンル:'広告',締切日:'2026/05/22',オーディション日:'',ステータス:'完了',対応者:'マネージャー',アクション:'',結果:'不合格',備考:'演出コンテ：https://app.jector.jp/dl/de1Wo73naFGvM3ajrYiaVssw PASS:0522',登録日:'2026/05/20',更新日:'2026/05/27',資料リンク:''},
+  {ID:'36',タレント名:'島田和奏',オーディション名:'男性お笑い番組新コント配信番組出演者募集（仮タイトル「似顔絵師の奴」）',ジャンル:'バラエティ',締切日:'2026/11/04',オーディション日:'',ステータス:'応募準備',対応者:'マネージャー',アクション:'11/4(水)15時締切：現状写真・演技映像資料・プロフィール（PDF/JPEG、ファイル名フルネーム）送付',結果:'未定',備考:'【情報漏洩注意】クライアント:ジャルジャル様（吉本興業株式会社） / 媒体:Netflix（現状2年間独占配信予定・変動可能性あり） / 内容:〇〇な奴シリーズ 仮「似顔絵師の奴」彼女役（20〜30代女性1名・泣く演技あり・アドリブ可能性高） 参考:https://youtu.be/B6fsOcuNE_0?si=O-8XMPAujZjSCbZ_ / 撮影日:2026/11/10(火) 都内近郊予定 / 出演料:5万円+税（交通費込） / 選考:書類選考のみ / 提出:①島田和奏 ②27歳 ③11/10終日OK ④現状写真 ⑤演技映像資料',登録日:'2026/11/04',更新日:'2026/11/04',資料リンク:'https://youtu.be/X_RS0SwuSDs'},
+  {ID:'37',タレント名:'実倉萌笑',オーディション名:'男性お笑い番組新コント配信番組出演者募集（仮タイトル「似顔絵師の奴」）',ジャンル:'バラエティ',締切日:'2026/11/04',オーディション日:'',ステータス:'応募準備',対応者:'マネージャー',アクション:'11/4(水)15時締切：現状写真・演技映像資料・プロフィール（PDF/JPEG、ファイル名フルネーム）送付',結果:'未定',備考:'【情報漏洩注意】クライアント:ジャルジャル様（吉本興業株式会社） / 媒体:Netflix（現状2年間独占配信予定・変動可能性あり） / 内容:〇〇な奴シリーズ 仮「似顔絵師の奴」彼女役（20〜30代女性1名・泣く演技あり・アドリブ可能性高） 参考:https://youtu.be/B6fsOcuNE_0?si=O-8XMPAujZjSCbZ_ / 撮影日:2026/11/10(火) 都内近郊予定 / 出演料:5万円+税（交通費込） / 選考:書類選考のみ / 提出:①実倉萌笑 ②26歳 ③11/10終日OK ④現状写真 ⑤演技映像資料',登録日:'2026/11/04',更新日:'2026/11/04',資料リンク:'https://drive.google.com/drive/folders/1BZbhN4LKQlf0hvJrcNamAPmjwf49I2nD'},
 ];
 
 async function loadData() {
@@ -318,6 +347,7 @@ async function loadCalendarData() {
       console.log(`カレンダー: ${calendarEvents.length}件取得`);
       if (currentSection === 'calendar') renderCalendar();
       renderRecent(); // カレンダーデータ取得後にRECENTも再描画
+      renderWeeklyReport();
     }
   } catch (e) {
     console.warn('カレンダーデータ取得失敗:', e.message);
@@ -365,11 +395,124 @@ function daysUntil(s) {
 function talentColor(name) { return TALENT_COLORS[name] || '#888'; }
 function talentIcon(name) { return TALENT_ICONS[name] || '👤'; }
 
+// ===== 停滞案件・放置案件の自動検知ロジック =====
+function getStagnantInfo(d) {
+  const status = (d['ステータス'] || '').trim();
+  const result = (d['結果'] || '').trim();
+
+  // 完了・合格・不合格・見送り・辞退済みの案件は対象外
+  if (status === '完了' || status === '受注' || result === '合格' || result.startsWith('不合格') || result.startsWith('辞退') || result.startsWith('見送り')) {
+    return null;
+  }
+
+  const now = new Date();
+  const deadlineStr = d['締切日'];
+  const duDeadline = deadlineStr ? daysUntil(deadlineStr) : Infinity;
+
+  // 1. 🚨 締切超過（critical）: 「応募準備」または「情報収集」で締切日を過ぎている
+  if (['応募準備', '情報収集'].includes(status) && duDeadline < 0) {
+    const daysOver = Math.abs(duDeadline);
+    return {
+      type: 'deadline',
+      severity: 'critical',
+      badgeText: `🚨 締切超過 (+${daysOver}日)`,
+      badgeClass: 'badge-stagnant-critical',
+      cardClass: 'stagnant-critical',
+      title: '締切日を過ぎています',
+      message: `締切日（${fmtDate(deadlineStr)}）を ${daysOver}日 超過しています。応募済みなら「書類結果待ち」、見送りや終了なら「完了」へ更新してください。`,
+      daysOver: daysOver
+    };
+  }
+
+  // 2. ⏳ 結果待ち停滞（warning）: 「書類結果待ち」または「結果待ち」
+  if (['書類結果待ち', '結果待ち'].includes(status)) {
+    const resDateStr = d['結果発表日'] || d['結果発表'] || d['オーディション日'];
+    const duRes = resDateStr ? daysUntil(resDateStr) : Infinity;
+
+    if (resDateStr && duRes < 0) {
+      const daysOver = Math.abs(duRes);
+      return {
+        type: 'result',
+        severity: 'warning',
+        badgeText: `⏳ 結果待ち停滞 (+${daysOver}日)`,
+        badgeClass: 'badge-stagnant-warning',
+        cardClass: 'stagnant-warning',
+        title: '結果発表予定日を経過',
+        message: `発表予定日（${fmtDate(resDateStr)}）から ${daysOver}日 経過。選考結果を確認し、次審査または不合格（完了）へ更新してください。`,
+        daysOver: daysOver
+      };
+    }
+
+    let baseDate = null;
+    if (deadlineStr && duDeadline <= -14) {
+      baseDate = parseDate(deadlineStr);
+    } else if (d['登録日']) {
+      baseDate = parseDate(d['登録日']);
+    } else if (d['更新日']) {
+      baseDate = parseDate(d['更新日']);
+    }
+
+    if (baseDate) {
+      const elapsedDays = Math.floor((now - baseDate) / 86400000);
+      if (elapsedDays >= 14) {
+        return {
+          type: 'result',
+          severity: 'warning',
+          badgeText: `⏳ 結果待ち長期 (${elapsedDays}日経過)`,
+          badgeClass: 'badge-stagnant-warning',
+          cardClass: 'stagnant-warning',
+          title: '結果待ちのまま14日以上経過',
+          message: `${fmtDate(baseDate)} から ${elapsedDays}日 が経過しています。結果の確認・更新を推奨します。`,
+          daysOver: elapsedDays
+        };
+      }
+    } else if (deadlineStr && duDeadline < 0) {
+      const daysOver = Math.abs(duDeadline);
+      if (daysOver >= 7) {
+        return {
+          type: 'result',
+          severity: 'warning',
+          badgeText: `⏳ 結果待ち (${daysOver}日)`,
+          badgeClass: 'badge-stagnant-warning',
+          cardClass: 'stagnant-warning',
+          title: '締切から7日以上結果未定',
+          message: `締切から ${daysOver}日 が経過しています。進捗状況を確認してください。`,
+          daysOver: daysOver
+        };
+      }
+    }
+  }
+
+  // 3. 💤 情報収集停滞（stale）: 「情報収集」のまま14日以上進展なし
+  if (status === '情報収集') {
+    const regDateStr = d['登録日'] || d['更新日'];
+    const regDate = regDateStr ? parseDate(regDateStr) : null;
+    if (regDate) {
+      const elapsedDays = Math.floor((now - regDate) / 86400000);
+      if (elapsedDays >= 14) {
+        return {
+          type: 'info',
+          severity: 'stale',
+          badgeText: `💤 情報収集停滞 (${elapsedDays}日)`,
+          badgeClass: 'badge-stagnant-stale',
+          cardClass: 'stagnant-stale',
+          title: '情報収集のまま14日以上進展なし',
+          message: `登録日（${fmtDate(regDateStr)}）から ${elapsedDays}日 が経過しています。応募準備へ移行するか見送り（完了）へ整理してください。`,
+          daysOver: elapsedDays
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
 // ===== Render All =====
 function renderAll() {
   renderTalentFilter();
   renderTalentKitBar();
   renderStats();
+  renderStagnantAlertPanel();
   renderActionPanel();
   renderDeadlines();
   renderRecent();
@@ -382,6 +525,7 @@ function renderAll() {
   renderNews();
   renderSalesAttackAll();
   renderSurveyList();
+  renderWeeklyReport();
 }
 
 // ===== Sales Data =====
@@ -563,6 +707,130 @@ function fallbackCopy(text, name) {
   document.body.removeChild(ta);
 }
 
+// ===== 停滞・要確認アラートパネル制御 =====
+function renderStagnantAlertPanel() {
+  const panel = document.getElementById('stagnantAlertPanel');
+  if (!panel) return;
+
+  const data = getFiltered();
+  const allStagnant = [];
+  data.forEach(d => {
+    const stag = getStagnantInfo(d);
+    if (stag) {
+      allStagnant.push({ item: d, stag: stag });
+    }
+  });
+
+  const countEl = document.getElementById('stagnantCount');
+  const summaryEl = document.getElementById('stagnantSummary');
+  const listEl = document.getElementById('stagnantList');
+
+  if (allStagnant.length === 0) {
+    panel.classList.add('hidden');
+    if (countEl) countEl.textContent = '0';
+    if (listEl) listEl.innerHTML = '';
+    return;
+  }
+
+  panel.classList.remove('hidden');
+  if (countEl) countEl.textContent = allStagnant.length;
+
+  // 内訳の集計
+  const deadlineCount = allStagnant.filter(x => x.stag.type === 'deadline').length;
+  const resultCount = allStagnant.filter(x => x.stag.type === 'result').length;
+  const infoCount = allStagnant.filter(x => x.stag.type === 'info').length;
+
+  if (summaryEl) {
+    const parts = [];
+    if (deadlineCount > 0) parts.push(`🚨 締切超過: ${deadlineCount}件`);
+    if (resultCount > 0) parts.push(`⏳ 結果待ち: ${resultCount}件`);
+    if (infoCount > 0) parts.push(`💤 情報収集: ${infoCount}件`);
+    summaryEl.textContent = `(${parts.join(' / ')})`;
+  }
+
+  // フィルター pills の active 状態を反映
+  const pills = document.querySelectorAll('.stagnant-pill');
+  pills.forEach(pill => {
+    if (pill.dataset.stagnantFilter === stagnantFilter) {
+      pill.classList.add('active');
+    } else {
+      pill.classList.remove('active');
+    }
+    if (!pill.dataset.bound) {
+      pill.dataset.bound = 'true';
+      pill.addEventListener('click', () => {
+        stagnantFilter = pill.dataset.stagnantFilter;
+        renderStagnantAlertPanel();
+      });
+    }
+  });
+
+  // リスト開閉ボタンの初期化・状態反映
+  const toggleBtn = document.getElementById('btnToggleStagnant');
+  if (toggleBtn) {
+    toggleBtn.textContent = stagnantCollapsed ? '▲' : '▼';
+    if (!toggleBtn.dataset.bound) {
+      toggleBtn.dataset.bound = 'true';
+      toggleBtn.addEventListener('click', () => {
+        stagnantCollapsed = !stagnantCollapsed;
+        toggleBtn.textContent = stagnantCollapsed ? '▲' : '▼';
+        if (listEl) {
+          if (stagnantCollapsed) listEl.classList.add('collapsed');
+          else listEl.classList.remove('collapsed');
+        }
+      });
+    }
+  }
+  if (listEl) {
+    if (stagnantCollapsed) listEl.classList.add('collapsed');
+    else listEl.classList.remove('collapsed');
+  }
+
+  // フィルターによる絞り込み
+  let displayList = allStagnant;
+  if (stagnantFilter !== 'all') {
+    displayList = allStagnant.filter(x => x.stag.type === stagnantFilter);
+  }
+
+  // 重要度順（critical -> warning -> stale）、超過日数降順でソート
+  displayList.sort((a, b) => {
+    const score = { critical: 3, warning: 2, stale: 1 };
+    const diff = (score[b.stag.severity] || 0) - (score[a.stag.severity] || 0);
+    if (diff !== 0) return diff;
+    return (b.stag.daysOver || 0) - (a.stag.daysOver || 0);
+  });
+
+  if (listEl) {
+    if (displayList.length === 0) {
+      listEl.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:16px; color:var(--text-secondary); font-size:0.8rem;">この条件に該当する停滞案件はありません</div>';
+    } else {
+      listEl.innerHTML = displayList.map(({ item: d, stag }) => {
+        const id = escapeHtml(d['ID']);
+        const talent = escapeHtml(d['タレント名']);
+        const title = escapeHtml(d['オーディション名']);
+        const status = escapeHtml(d['ステータス']);
+
+        return `<div class="stagnant-item severity-${stag.severity}">
+          <div class="stagnant-item-top">
+            <div class="stagnant-tag-group">
+              <span class="action-talent-badge" style="background:${talentColor(d['タレント名'])}">${talent}</span>
+              <span class="badge-stagnant ${stag.badgeClass}">${stag.badgeText}</span>
+            </div>
+            <span style="font-size:0.7rem; color:var(--text-muted);">現: <strong>${status}</strong></span>
+          </div>
+          <div class="stagnant-item-title">${title}</div>
+          <div class="stagnant-item-msg">${escapeHtml(stag.message)}</div>
+          <div class="stagnant-item-actions">
+            <button class="btn-stagnant-act btn-stagnant-fail" onclick="quickUpdateStatus('${id}', '完了', '不合格')" title="不合格・見送りとして完了ステータスへ移動">❌ 不合格終了</button>
+            <button class="btn-stagnant-act btn-stagnant-next" onclick="quickUpdateStatus('${id}', '2次以降AD', '未定')" title="2次選考進出へステータス更新">✅ 2次選考進出</button>
+            <button class="btn-stagnant-act btn-stagnant-edit" onclick="openEditModal('${id}')" title="詳細編集モーダルを開く">✏️ 編集</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+}
+
 // ===== Stats =====
 function renderStats() {
   const data = getFiltered();
@@ -570,10 +838,12 @@ function renderStats() {
   const deadlineSoon = data.filter(d => { const du = daysUntil(d['締切日']); return du >= 0 && du <= 7; });
   const passed = data.filter(d => d['結果'] === '合格');
   const managerAction = data.filter(d => ['応募準備','書類結果待ち','2次以降AD','結果待ち'].includes(d['ステータス']) && !(d['結果'] || '').startsWith('不合格'));
+  const stagnantCount = data.filter(d => getStagnantInfo(d) !== null).length;
   document.getElementById('statsGrid').innerHTML = [
     statCard('📋', active.length, '進行中', ''),
     statCard('⏰', deadlineSoon.length, '今週の締切', ''),
-    statCard('⚡', managerAction.length, '対応待ち', 'urgent')
+    statCard('⚡', managerAction.length, '対応待ち', 'urgent'),
+    statCard('⚠️', stagnantCount, '停滞・要確認', stagnantCount > 0 ? 'urgent' : '')
   ].join('');
 }
 
@@ -724,6 +994,11 @@ function renderTalentSummary() {
 function renderKanban() {
   let data = getFiltered();
   
+  // 停滞中のみフィルター
+  if (kanbanStagnantOnly) {
+    data = data.filter(d => getStagnantInfo(d) !== null);
+  }
+
   // ジャンルフィルター
   if (kanbanGenre !== 'all') {
     data = data.filter(d => (d['ジャンル'] || '').includes(kanbanGenre));
@@ -875,6 +1150,11 @@ function kanbanCard(d) {
   const typeIcon = TYPE_ICONS[typeVal] || '📋';
   const typeBadge = `<span style="display:inline-block;font-size:.62rem;font-weight:800;color:#fff;background:${typeColor};padding:2px 7px;border-radius:4px">${typeIcon} ${escapeHtml(typeVal)}</span>`;
 
+  // 停滞情報チェック
+  const stag = getStagnantInfo(d);
+  const stagnantCardCls = stag ? stag.cardClass : '';
+  const stagnantBadge = stag ? `<span class="badge-stagnant ${stag.badgeClass}" style="margin-left:auto;">${stag.badgeText}</span>` : '';
+
   // 締切カウントダウンバッジ
   let deadlineBadge = '';
   if (d['締切日']) {
@@ -890,10 +1170,14 @@ function kanbanCard(d) {
     }
   }
 
-  return `<div class="kanban-card" draggable="true" data-id="${escapeHtml(d['ID'])}" style="${typeVal !== 'オーディション' ? 'border-left:4px solid '+typeColor : ''}">
+  // クイック終了ボタン（停滞中の場合、カード上からも即終了可能に）
+  const quickFailBtn = stag ? `<button class="card-action-btn btn-quick-fail" onclick="quickUpdateStatus('${escapeHtml(d['ID'])}', '完了', '不合格'); event.stopPropagation();" title="不合格終了として完了へ">❌ 終了</button>` : '';
+
+  return `<div class="kanban-card ${stagnantCardCls}" draggable="true" data-id="${escapeHtml(d['ID'])}" style="${typeVal !== 'オーディション' && !stag ? 'border-left:4px solid '+typeColor : ''}">
     <div class="kanban-card-top">
       ${typeBadge}
       <span class="talent-badge-sm" style="background:${talentColor(d['タレント名'])}">${escapeHtml(d['タレント名'])}</span>
+      ${stagnantBadge}
     </div>
     <div class="kanban-card-title">${escapeHtml(d['オーディション名'])}</div>
     <div class="kanban-card-meta">
@@ -902,12 +1186,66 @@ function kanbanCard(d) {
       ${d['対応者']==='マネージャー'?'<span style="color:var(--accent);font-weight:700">●MGR</span>':''}
       ${resultCls?`<span class="kanban-card-result ${resultCls}">${escapeHtml(d['結果'])}</span>`:''}
     </div>
+    ${stag ? `<div class="stagnant-item-msg" style="margin-top:6px;">${escapeHtml(stag.message)}</div>` : ''}
     ${d['アクション']?`<div style="font-size:.72rem;color:var(--text-secondary);background:var(--bg-alt);padding:4px 8px;border-radius:4px;margin-top:6px">👉 ${escapeHtml(d['アクション'])}</div>`:''}
     <div class="kanban-card-actions">
+      ${quickFailBtn}
       ${fileLink}
       <button class="card-action-btn card-edit-btn" data-edit-id="${escapeHtml(d['ID'])}" title="編集">✏️ 編集</button>
     </div>
   </div>`;
+}
+
+function toggleKanbanStagnantFilter() {
+  kanbanStagnantOnly = !kanbanStagnantOnly;
+  const btn = document.getElementById('btnKanbanStagnantOnly');
+  if (btn) {
+    if (kanbanStagnantOnly) btn.classList.add('active');
+    else btn.classList.remove('active');
+  }
+  renderKanban();
+}
+
+// ===== Quick Status Update =====
+async function quickUpdateStatus(id, newStatus, newResult) {
+  const item = allData.find(d => String(d.ID) === String(id));
+  if (!item) return;
+
+  if (newStatus) item['ステータス'] = newStatus;
+  if (newResult !== undefined) item['結果'] = newResult;
+
+  renderAll();
+  const resMsg = newResult ? `（結果: ${newResult}）` : '';
+  showToast(`⚡ 「${item['オーディション名']}」を【${item['ステータス']}】${resMsg}に更新しました`);
+
+  if (hasGasUrl()) {
+    try {
+      const payload = {
+        token: API_TOKEN,
+        action: 'update',
+        id: String(item.ID),
+        talentName: item['タレント名'],
+        type: item['案件種別'] || 'オーディション',
+        auditionName: item['オーディション名'],
+        genre: item['ジャンル'],
+        deadline: item['締切日'],
+        auditionDate: item['オーディション日'],
+        status: item['ステータス'],
+        owner: item['対応者'] || 'マネージャー',
+        action: item['アクション'] || '',
+        result: item['結果'] || '未定',
+        notes: item['備考'] || '',
+        fileUrl: item['資料リンク'] || ''
+      };
+      await fetch(GAS_WEBAPP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(payload)
+      });
+    } catch (err) {
+      console.warn('Quick status update error:', err);
+    }
+  }
 }
 
 // ===== List =====
@@ -927,11 +1265,31 @@ function renderList() {
 
   const el = document.getElementById('listBody');
   el.innerHTML = data.map(d => {
-    const sCls = d['ステータス']==='情報収集'?'status-info':d['ステータス']==='応募準備'?'status-prep':d['ステータス']==='書類結果待ち'?'status-sent':d['ステータス']==='2次以降AD'?'status-auditioned':d['ステータス']==='受注'?'status-order':'status-completed';
     const rCls = d['結果']==='合格'?'result-pass':(d['結果']||'').startsWith('不合格')?'result-fail':d['結果']==='結果待ち'?'result-waiting':'';
     const ownerCls = d['対応者']==='マネージャー'?'owner-manager':'';
     const fileLink = d['資料リンク'] ? `<a href="${escapeHtml(d['資料リンク'])}" target="_blank" style="font-size:.7rem;color:var(--accent)">📎</a>` : '';
-    return `<tr><td data-label="タレント"><span class="talent-badge-sm" style="background:${talentColor(d['タレント名'])}">${escapeHtml(d['タレント名'])}</span></td><td data-label="案件名">${escapeHtml(d['オーディション名'])} ${fileLink}</td><td data-label="ジャンル">${GENRE_ICONS[d['ジャンル']]||''} ${escapeHtml(d['ジャンル'])}</td><td data-label="締切">${fmtDate(d['締切日'])}</td><td data-label="ステータス"><span class="status-badge ${sCls}">${escapeHtml(d['ステータス'])}</span></td><td data-label="対応者" class="${ownerCls}">${escapeHtml(d['対応者'])}</td><td data-label="結果">${rCls?`<span class="kanban-card-result ${rCls}">${escapeHtml(d['結果'])}</span>`:escapeHtml(d['結果'])||'-'}</td><td data-label="アクション" style="font-size:.75rem;color:var(--text-muted)">${escapeHtml(d['アクション'])||'-'}</td><td data-label="操作"><button class="card-edit-btn" data-edit-id="${escapeHtml(d['ID'])}" title="編集" style="background:none;border:none;cursor:pointer;font-size:.9rem;padding:2px;">✏️</button></td></tr>`;
+    
+    // インラインステータスセレクト
+    const statusOpts = STATUS_ORDER.map(st => `<option value="${escapeHtml(st)}"${d['ステータス']===st?' selected':''}>${escapeHtml(st)}</option>`).join('');
+    const statusSelect = `<select class="inline-status-select" onchange="quickUpdateStatus('${escapeHtml(d['ID'])}', this.value)">${statusOpts}</select>`;
+
+    return `<tr>
+      <td data-label="タレント"><span class="talent-badge-sm" style="background:${talentColor(d['タレント名'])}">${escapeHtml(d['タレント名'])}</span></td>
+      <td data-label="案件名">${escapeHtml(d['オーディション名'])} ${fileLink}</td>
+      <td data-label="ジャンル">${GENRE_ICONS[d['ジャンル']]||''} ${escapeHtml(d['ジャンル'])}</td>
+      <td data-label="締切">${fmtDate(d['締切日'])}</td>
+      <td data-label="ステータス">${statusSelect}</td>
+      <td data-label="対応者" class="${ownerCls}">${escapeHtml(d['対応者'])}</td>
+      <td data-label="結果">${rCls?`<span class="kanban-card-result ${rCls}">${escapeHtml(d['結果'])}</span>`:escapeHtml(d['結果'])||'-'}</td>
+      <td data-label="アクション" style="font-size:.75rem;color:var(--text-muted)">${escapeHtml(d['アクション'])||'-'}</td>
+      <td data-label="操作">
+        <div class="quick-action-btns">
+          <button class="btn-quick-pass" onclick="quickUpdateStatus('${escapeHtml(d['ID'])}', '受注', '合格')" title="合格・受注">受</button>
+          <button class="btn-quick-fail" onclick="quickUpdateStatus('${escapeHtml(d['ID'])}', '完了', '不合格')" title="不合格・終了">落</button>
+          <button class="card-edit-btn" data-edit-id="${escapeHtml(d['ID'])}" title="編集" style="background:none;border:none;cursor:pointer;font-size:.9rem;padding:2px;">✏️</button>
+        </div>
+      </td>
+    </tr>`;
   }).join('') || '<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📭</div><p>該当なし</p></div></td></tr>';
 }
 
@@ -1076,8 +1434,11 @@ function showSection(section) {
   document.getElementById('section-'+section)?.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelector(`[data-section="${section}"]`)?.classList.add('active');
-  const titles = {dashboard:'ダッシュボード',kanban:'カンバン',works:'仕事一覧',list:'リスト（AD）',calendar:'カレンダー',stats:'統計',sales_attack:'営業アタック',survey:'ルーツシート',mission:'ミッション管理'};
+  const titles = {dashboard:'ダッシュボード',weekly_report:'週次報告（ハイライト）',kanban:'カンバン',works:'仕事一覧',list:'リスト（AD）',calendar:'カレンダー',stats:'統計',sales_attack:'営業アタック',survey:'ルーツシート',mission:'ミッション管理'};
   document.getElementById('pageTitle').textContent = titles[section] || section;
+  if (section === 'weekly_report') {
+    renderWeeklyReport();
+  }
   if (section === 'sales_attack') {
     renderSalesAttackAll();
   }
@@ -1115,7 +1476,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ハッシュルーティング監視
   window.addEventListener('hashchange', () => {
     const section = location.hash.replace('#', '') || 'dashboard';
-    const validSections = ['dashboard', 'kanban', 'works', 'list', 'calendar', 'stats', 'sales_attack', 'survey', 'mission'];
+    const validSections = ['dashboard', 'weekly_report', 'kanban', 'works', 'list', 'calendar', 'stats', 'sales_attack', 'survey', 'mission'];
     if (validSections.includes(section)) {
       showSection(section);
     }
@@ -1123,7 +1484,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 初回ロード時のルーティング
   const initSection = location.hash.replace('#', '') || 'dashboard';
-  const validSections = ['dashboard', 'kanban', 'works', 'list', 'calendar', 'stats', 'sales_attack', 'survey', 'mission'];
+  const validSections = ['dashboard', 'weekly_report', 'kanban', 'works', 'list', 'calendar', 'stats', 'sales_attack', 'survey', 'mission'];
   if (validSections.includes(initSection)) {
     showSection(initSection);
   }
@@ -1212,6 +1573,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('surveySearch')?.addEventListener('input', e => {
     surveySearchQuery = e.target.value;
     renderSurveyList();
+  renderWeeklyReport();
   });
 
   // Mission Nav & Controls
@@ -1261,6 +1623,156 @@ function hasGasUrl() {
 
 function withToken(url) {
   return url + (url.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(API_TOKEN);
+}
+
+// ===== Smart Paste & Parse =====
+function toggleSmartPaste() {
+  const body = document.getElementById('smartPasteBody');
+  const btn = document.getElementById('toggleSmartBtn');
+  if (!body) return;
+  const isHidden = body.classList.toggle('hidden');
+  if (btn) btn.textContent = isHidden ? '＋ 開く' : '✕ 閉じる';
+}
+
+function clearSmartPaste() {
+  const input = document.getElementById('smartPasteInput');
+  if (input) input.value = '';
+}
+
+function parseAuditionText(raw) {
+  if (!raw || typeof raw !== 'string') return {};
+  const text = raw.trim();
+  const res = {};
+
+  // 1. タレント名推定
+  const talentMap = {
+    '谷口': '谷口彩菜', '彩菜': '谷口彩菜',
+    '島田': '島田和奏', '和奏': '島田和奏',
+    '中塚': '中塚智', '智': '中塚智',
+    '太田': '太田陽菜', '陽菜': '太田陽菜',
+    '寺崎': '寺崎ひな', 'ひな': '寺崎ひな',
+    '小久保': '小久保宏紀', '宏紀': '小久保宏紀',
+    '相馬': '相馬寿樹', '寿樹': '相馬寿樹',
+    '実倉': '実倉萌笑', '萌笑': '実倉萌笑',
+    '吉富': '吉富千桜', '千桜': '吉富千桜'
+  };
+  for (const [key, name] of Object.entries(talentMap)) {
+    if (text.includes(key)) {
+      res.talentName = name;
+      break;
+    }
+  }
+
+  // 2. 案件種別推定
+  if (/オファー|指名|直接打診/i.test(text)) res.type = 'オファー';
+  else if (/レギュラー/i.test(text)) res.type = 'レギュラー';
+  else if (/イベント|舞台|登壇/i.test(text)) res.type = 'イベント';
+  else if (/撮影のみ|スチール撮影/i.test(text)) res.type = '撮影';
+  else res.type = 'オーディション';
+
+  // 3. ジャンル推定
+  if (/映画/i.test(text)) res.genre = '映画';
+  else if (/ショートドラマ|縦型/i.test(text)) res.genre = 'ショートドラマ';
+  else if (/ドラマ|連続ドラマ|連ドラ/i.test(text)) res.genre = 'ドラマ';
+  else if (/舞台|ミュージカル/i.test(text)) res.genre = '舞台';
+  else if (/CM|TVCM|コマーシャル/i.test(text)) res.genre = 'CM';
+  else if (/WEB広告|バナー|LP|広告/i.test(text)) res.genre = '広告';
+  else if (/MV|ミュージックビデオ/i.test(text)) res.genre = 'MV';
+  else if (/バラエティ/i.test(text)) res.genre = 'バラエティ';
+  else if (/Web|配信/i.test(text)) res.genre = 'Web';
+
+  // 4. 案件名推定
+  const titleMatch = text.match(/(?:件名|表題|作品名|企画名|案件名|タイトル)[：:\s]+([^\n\r]{4,50})/i);
+  const contentMatch = text.match(/(?:内容|概要)[：:\s\n\r]+([^\n\r]{4,60})/i);
+  const recruitMatch = text.match(/([^\n\r]{4,40}(?:キャスト募集|出演者募集|モデル募集|オーディション))/i);
+  const bracketMatch = text.match(/[【『「]([^】』」\n]{4,50})[】』」]/);
+
+  if (titleMatch && titleMatch[1]) {
+    res.auditionName = titleMatch[1].trim();
+  } else if (bracketMatch && bracketMatch[1]) {
+    res.auditionName = bracketMatch[1].trim();
+  } else if (recruitMatch && recruitMatch[1]) {
+    res.auditionName = recruitMatch[1].trim().replace(/^[▼■●◆・\s]+/, '');
+  } else if (contentMatch && contentMatch[1]) {
+    let clean = contentMatch[1].trim().replace(/にて.*$/, '').replace(/^[▼■●◆・\s]+/, '');
+    res.auditionName = clean;
+  }
+
+  // 5. 締切日推定
+  const deadlineMatch = text.match(/(?:締切|締め切り|〆切|〆|エントリー期限|回答期限|返答期限|提出期限|提出期日|期限)[：:\s]*([0-9]{4}[\/\-\.年])?([0-9]{1,2})[\/\-\.月]([0-9]{1,2})日?/i)
+    || text.match(/([0-9]{1,2})[\/\-\.月]([0-9]{1,2})日?\s*(?:\([日月火水木金土]\))?\s*(?:1[0-9]|2[0-3]|[0-9]):[0-5][0-9]\s*(?:締切|〆切|〆|期限)/i);
+  if (deadlineMatch) {
+    const year = deadlineMatch[1] ? deadlineMatch[1].replace(/[年\/\-\.]/g, '') : new Date().getFullYear();
+    const month = String(deadlineMatch[2]).padStart(2, '0');
+    const day = String(deadlineMatch[3]).padStart(2, '0');
+    res.deadline = `${year}-${month}-${day}`;
+  }
+
+  // 6. オーディション日推定
+  const audDates = [];
+  const y = new Date().getFullYear();
+
+  // レンジ表記: 10/19〜10/23
+  const audRangeMatch = text.match(/(?:オーディション日|オーディション|AD日|選考日)[^0-9\n]*([0-9]{1,2})[\/\.月]([0-9]{1,2})(?:日)?\s*[~〜\-]\s*([0-9]{1,2})[\/\.月]?([0-9]{1,2})日?/i);
+  if (audRangeMatch) {
+    const m1 = parseInt(audRangeMatch[1], 10);
+    const d1 = parseInt(audRangeMatch[2], 10);
+    const m2 = audRangeMatch[3] && !audRangeMatch[4] ? m1 : parseInt(audRangeMatch[3] || m1, 10);
+    const d2 = parseInt(audRangeMatch[4] || audRangeMatch[3], 10);
+    for (let d = d1; d <= d2 && d <= d1 + 7; d++) {
+      audDates.push(`${y}-${String(m1).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+    }
+  } else {
+    // 縦並びまたはセクション内の日付
+    const audSecMatch = text.match(/(?:オーディション日|オーディション|AD日|選考日|面談日)[\s\S]{1,200}?(?=(?:▼|【|■|撮影|本番|〆切|締切|期限|回答|返答|$))/i);
+    const targetText = audSecMatch ? audSecMatch[0] : text;
+    const dateRegex = /(?:1[0-2]|0?[1-9])[\/\.月](?:[12][0-9]|3[01]|0?[1-9])日?/g;
+    let m;
+    while ((m = dateRegex.exec(targetText)) !== null) {
+      const parts = m[0].match(/([0-9]{1,2})[\/\.月]([0-9]{1,2})/);
+      if (parts) {
+        const formatted = `${y}-${String(parts[1]).padStart(2, '0')}-${String(parts[2]).padStart(2, '0')}`;
+        if (!audDates.includes(formatted)) {
+          audDates.push(formatted);
+        }
+      }
+    }
+  }
+
+  if (audDates.length > 0) {
+    res.audDates = audDates;
+  }
+
+  res.action = '書類提出（プロフィール・写真送付）';
+  res.notes = text.length > 350 ? text.substring(0, 350) + '...' : text;
+  return res;
+}
+
+function applySmartParse() {
+  const input = document.getElementById('smartPasteInput');
+  if (!input || !input.value.trim()) {
+    showToast('⚠️ 解析するテキストを入力してください');
+    return;
+  }
+  const parsed = parseAuditionText(input.value);
+
+  if (parsed.type) document.getElementById('f-type').value = parsed.type;
+  if (parsed.talentName) document.getElementById('f-talent').value = parsed.talentName;
+  if (parsed.genre) document.getElementById('f-genre').value = parsed.genre;
+  if (parsed.auditionName) document.getElementById('f-name').value = parsed.auditionName;
+  if (parsed.deadline) document.getElementById('f-deadline').value = parsed.deadline;
+  if (parsed.action) document.getElementById('f-action').value = parsed.action;
+  if (parsed.notes) document.getElementById('f-notes').value = parsed.notes;
+
+  if (parsed.audDates && parsed.audDates.length > 0) {
+    const auddateList = document.getElementById('auddateList');
+    if (auddateList) {
+      auddateList.innerHTML = '';
+      parsed.audDates.forEach(d => addAudDate(d));
+    }
+  }
+
+  showToast('🪄 案件情報を自動解析してフォームに反映しました！');
 }
 
 // ===== Modal =====
@@ -1428,6 +1940,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     closeAddModal();
     closeSalesAddModal();
+    closeSalesEditModal();
   }
 });
 
@@ -1596,6 +2109,13 @@ async function handleAddSubmit(e) {
       });
     }
     renderAll();
+    
+    // カレンダー自動連携
+    const shouldSyncCal = document.getElementById('f-sync-cal')?.checked;
+    if (shouldSyncCal && hasGasUrl()) {
+      syncAuditionToCalendar(formData);
+    }
+    
     closeAddModal();
 
   } catch (err) {
@@ -1607,6 +2127,57 @@ async function handleAddSubmit(e) {
     spinner.classList.add('hidden');
   }
   return false;
+}
+
+async function syncAuditionToCalendar(data) {
+  if (!hasGasUrl()) return;
+  const calId = TALENT_CALENDAR_IDS[data.talentName];
+  if (!calId) return;
+
+  try {
+    // 1. 締切日イベント
+    if (data.deadline) {
+      const parts = data.deadline.split(/[\/\-]/);
+      if (parts.length === 3) {
+        const dStr = `${parts[0]}-${String(parts[1]).padStart(2, '0')}-${String(parts[2]).padStart(2, '0')}`;
+        await fetch(GAS_WEBAPP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            token: API_TOKEN,
+            action: 'create_allday_event',
+            calendarId: calId,
+            summary: `【締切】${data.talentName}：${data.auditionName} 書類〆切`,
+            date: dStr
+          })
+        });
+      }
+    }
+    // 2. オーディション候補日イベント
+    if (data.auditionDate) {
+      const dates = data.auditionDate.split(',').map(s => s.trim()).filter(Boolean);
+      for (const ds of dates) {
+        const parts = ds.split(/[\/\-]/);
+        if (parts.length === 3) {
+          const dStr = `${parts[0]}-${String(parts[1]).padStart(2, '0')}-${String(parts[2]).padStart(2, '0')}`;
+          await fetch(GAS_WEBAPP_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              token: API_TOKEN,
+              action: 'create_allday_event',
+              calendarId: calId,
+              summary: `【仮】${data.talentName}：${data.auditionName} オーディション候補日`,
+              date: dStr
+            })
+          });
+        }
+      }
+    }
+    showToast(`📅 ${data.talentName}のカレンダーに予定を連携しました`);
+  } catch (err) {
+    console.warn('Calendar sync warning:', err);
+  }
 }
 
 function fileToBase64(file) {
@@ -1689,18 +2260,28 @@ function renderWorks() {
   el.innerHTML = data.map(d => {
     const type = d['案件種別'] || 'オーディション';
     const typeColor = TYPE_COLORS[type] || '#888';
-    const sCls = d['ステータス']==='情報収集'?'status-info':d['ステータス']==='応募準備'?'status-prep':d['ステータス']==='書類結果待ち'?'status-sent':d['ステータス']==='2次以降AD'?'status-auditioned':d['ステータス']==='受注'?'status-order':'status-completed';
     const dateStr = d['オーディション日'] ? fmtDate(d['オーディション日']) : (d['締切日'] ? '〆'+fmtDate(d['締切日']) : '-');
+    
+    // インラインステータスセレクト
+    const statusOpts = STATUS_ORDER.map(st => `<option value="${escapeHtml(st)}"${d['ステータス']===st?' selected':''}>${escapeHtml(st)}</option>`).join('');
+    const statusSelect = `<select class="inline-status-select" onchange="quickUpdateStatus('${escapeHtml(d['ID'])}', this.value)">${statusOpts}</select>`;
+
     return `<tr>
       <td data-label="種別"><span class="type-badge" style="background:${typeColor}">${TYPE_ICONS[type]||''} ${escapeHtml(type)}</span></td>
       <td data-label="タレント"><span class="talent-badge-sm" style="background:${talentColor(d['タレント名'])}">${escapeHtml(d['タレント名'])}</span></td>
       <td data-label="案件名">${escapeHtml(d['オーディション名'])}</td>
       <td data-label="ジャンル">${GENRE_ICONS[d['ジャンル']]||''} ${escapeHtml(d['ジャンル'])}</td>
       <td data-label="日程">${escapeHtml(dateStr)}</td>
-      <td data-label="ステータス"><span class="status-badge ${sCls}">${escapeHtml(d['ステータス'])}</span></td>
+      <td data-label="ステータス">${statusSelect}</td>
       <td data-label="対応者">${escapeHtml(d['対応者'])}</td>
       <td data-label="備考" style="font-size:.75rem;color:var(--text-muted)">${escapeHtml(d['備考'])||'-'}</td>
-      <td data-label="操作"><button class="card-edit-btn" data-edit-id="${escapeHtml(d['ID'])}" title="編集" style="background:none;border:none;cursor:pointer;font-size:.9rem;padding:2px;">✏️</button></td>
+      <td data-label="操作">
+        <div class="quick-action-btns">
+          <button class="btn-quick-pass" onclick="quickUpdateStatus('${escapeHtml(d['ID'])}', '受注', '合格')" title="合格・受注">受</button>
+          <button class="btn-quick-fail" onclick="quickUpdateStatus('${escapeHtml(d['ID'])}', '完了', '不合格')" title="不合格・終了">落</button>
+          <button class="card-edit-btn" data-edit-id="${escapeHtml(d['ID'])}" title="編集" style="background:none;border:none;cursor:pointer;font-size:.9rem;padding:2px;">✏️</button>
+        </div>
+      </td>
     </tr>`;
   }).join('') || '<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📭</div><p>該当する案件はありません</p></div></td></tr>';
 }
@@ -1917,7 +2498,10 @@ function renderSalesAttackKanban() {
       const salesId = d['ID'] || d['id'] || d['社名'];
       
       return `<div class="sales-kanban-card" draggable="true" data-sales-id="${escapeHtml(salesId)}" data-company="${escapeHtml(d['社名'])}">
-        <span class="sales-prob-badge" style="background:var(--bg-alt);font-size:.62rem">${escapeHtml(d['アプローチ先種別'])}</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span class="sales-prob-badge" style="background:var(--bg-alt);font-size:.62rem">${escapeHtml(d['アプローチ先種別'])}</span>
+          <button onclick="event.stopPropagation();openSalesEditModal('${escapeHtml(salesId)}')" title="編集" style="background:none;border:none;cursor:pointer;font-size:.78rem;color:var(--text-muted);padding:1px 4px;border-radius:4px;">✏️</button>
+        </div>
         <div class="sales-kanban-card-title" style="margin-top:4px">${escapeHtml(d['社名'])}</div>
         <div class="sales-kanban-card-sub">
           <span class="sales-prob-badge ${ratingClass}">確度: ${escapeHtml(rating)}</span>
@@ -2045,9 +2629,14 @@ function renderSalesAttackList() {
       <td data-label="次回ToDo" style="font-size:.75rem;">${nextAction}</td>
       <td data-label="備考" style="font-size:.75rem;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(d['備考/メモ'])}">${notesText}</td>
       <td data-label="アクション">
-        <button class="btn btn-secondary btn-sm" onclick="openBriefingModal('${escapeHtml(d['ID'] || d['id'] || d['Row'])}')">
-          ブリーフィング
-        </button>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <button class="btn btn-secondary btn-sm" onclick="openBriefingModal('${escapeHtml(d['ID'] || d['id'] || d['Row'])}')">
+            ブリーフィング
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="openSalesEditModal('${escapeHtml(d['ID'] || d['id'] || d['Row'] || d['社名'])}')" title="編集">
+            ✏️
+          </button>
+        </div>
       </td>
     </tr>`;
   }).join('') || '<tr><td colspan="12"><div class="empty-state"><div class="empty-icon">📭</div><p>営業アタックデータはありません</p></div></td></tr>';
@@ -2147,6 +2736,142 @@ async function handleSalesAddSubmit(e) {
   return false;
 }
 
+// ===== Sales Attack Edit Modal =====
+function openSalesEditModal(id) {
+  const item = allSalesAttackData.find(d => 
+    String(d['ID']) === String(id) || 
+    String(d['id']) === String(id) || 
+    String(d['Row']) === String(id) ||
+    String(d['社名']) === String(id)
+  );
+  if (!item) {
+    showToast('⚠️ 編集対象の営業先が見つかりません');
+    return;
+  }
+
+  document.getElementById('se-id').value = item['ID'] || item['id'] || item['Row'] || '';
+  document.getElementById('se-companyName').value = item['社名'] || '';
+  document.getElementById('se-companyType').value = item['アプローチ先種別'] || '制作会社';
+  document.getElementById('se-contactName').value = item['担当者名'] || '';
+  document.getElementById('se-contactInfo').value = item['連絡先'] || '';
+
+  const formatInputDate = (dateStr) => {
+    const d = parseDate(dateStr);
+    if (!d) return '';
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  document.getElementById('se-lastApproachDate').value = formatInputDate(item['最終アプローチ日']);
+  document.getElementById('se-approachMethod').value = item['アプローチ方法'] || '';
+  document.getElementById('se-status').value = item['アタックステータス'] || '未アプローチ';
+  document.getElementById('se-rating').value = item['確度/感触'] || 'C';
+  document.getElementById('se-talentName').value = item['提案タレント'] || '';
+  document.getElementById('se-nextApproachDate').value = formatInputDate(item['次回アクション予定日']);
+  document.getElementById('se-nextApproachAction').value = item['次回アクション内容'] || '';
+  document.getElementById('se-notes').value = item['備考/メモ'] || '';
+
+  document.getElementById('salesEditModal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSalesEditModal() {
+  document.getElementById('salesEditModal').classList.remove('show');
+  document.body.style.overflow = '';
+  document.getElementById('salesEditForm').reset();
+}
+
+async function handleSalesEditSubmit(e) {
+  e.preventDefault();
+  const btn = document.getElementById('salesEditSubmitBtn');
+  const text = document.getElementById('salesEditSubmitText');
+  const spinner = document.getElementById('salesEditSubmitSpinner');
+  btn.disabled = true;
+  text.textContent = '更新中...';
+  spinner.classList.remove('hidden');
+
+  const lastApproachDateRaw = document.getElementById('se-lastApproachDate').value;
+  const lastApproachDate = lastApproachDateRaw ? lastApproachDateRaw.replace(/-/g, '/') : '';
+  const nextApproachDateRaw = document.getElementById('se-nextApproachDate').value;
+  const nextApproachDate = nextApproachDateRaw ? nextApproachDateRaw.replace(/-/g, '/') : '';
+
+  const id = document.getElementById('se-id').value;
+  const companyName = document.getElementById('se-companyName').value;
+
+  const formData = {
+    sheetType: 'sales_attack_update',
+    action: 'update_sales_attack',
+    id: id,
+    companyName: companyName,
+    companyType: document.getElementById('se-companyType').value,
+    contactName: document.getElementById('se-contactName').value,
+    contactInfo: document.getElementById('se-contactInfo').value,
+    lastApproachDate: lastApproachDate,
+    approachMethod: document.getElementById('se-approachMethod').value,
+    status: document.getElementById('se-status').value,
+    rating: document.getElementById('se-rating').value,
+    talentName: document.getElementById('se-talentName').value,
+    nextApproachDate: nextApproachDate,
+    nextApproachAction: document.getElementById('se-nextApproachAction').value,
+    notes: document.getElementById('se-notes').value,
+    token: API_TOKEN
+  };
+
+  try {
+    if (hasGasUrl()) {
+      const res = await fetch(GAS_WEBAPP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(formData)
+      });
+      const result = await res.json();
+      if (result.success) {
+        showToast('✅ 営業アタック情報を更新しました！');
+      } else {
+        throw new Error(result.error || '更新失敗');
+      }
+    } else {
+      showToast('📝 ローカルデータを更新しました');
+    }
+
+    // ローカルキャッシュの即時更新
+    const idx = allSalesAttackData.findIndex(d => 
+      (id && (String(d['ID']) === String(id) || String(d['id']) === String(id) || String(d['Row']) === String(id))) ||
+      String(d['社名']) === String(companyName)
+    );
+    if (idx !== -1) {
+      allSalesAttackData[idx] = {
+        ...allSalesAttackData[idx],
+        社名: formData.companyName,
+        アプローチ先種別: formData.companyType,
+        担当者名: formData.contactName,
+        連絡先: formData.contactInfo,
+        最終アプローチ日: formData.lastApproachDate,
+        アプローチ方法: formData.approachMethod,
+        アタックステータス: formData.status,
+        '確度/感触': formData.rating,
+        提案タレント: formData.talentName,
+        次回アクション予定日: formData.nextApproachDate,
+        次回アクション内容: formData.nextApproachAction,
+        '備考/メモ': formData.notes
+      };
+    }
+    renderSalesAttackAll();
+    closeSalesEditModal();
+
+  } catch (err) {
+    console.error(err);
+    showToast('❌ エラー: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    text.textContent = '更新する';
+    spinner.classList.add('hidden');
+  }
+  return false;
+}
+
 // ===== Survey (タレントアンケート) =====
 let surveyDataCache = [];
 let surveySearchQuery = '';
@@ -2170,7 +2895,9 @@ function normalizeTalentFullName(name) {
     '中塚': '中塚智',
     '中塚智': '中塚智',
     '相馬': '相馬寿樹',
-    '相馬寿樹': '相馬寿樹'
+    '相馬寿樹': '相馬寿樹',
+    '実倉': '実倉萌笑',
+    '実倉萌笑': '実倉萌笑'
   };
   return map[s] || s;
 }
@@ -2205,6 +2932,7 @@ async function loadSurveyData() {
       });
       surveyDataCache = Array.from(map.values());
       renderSurveyList();
+  renderWeeklyReport();
     } else {
       throw new Error(json.error || 'データ取得失敗');
     }
@@ -2958,3 +3686,641 @@ async function handleMissionTargetSubmit(missionId, inputVal) {
 }
 
 
+
+// ============================================================
+// 週次報告・タレント別ハイライト機能 (Weekly Report / Highlights)
+// ============================================================
+let weeklyPeriod = '7d';
+let weeklyActiveOnly = true;
+let weeklyIncludeCal = true;
+let weeklyTextFormat = 'simple';
+
+const TALENT_SHORT_NAMES = {
+  '谷口彩菜': '谷口',
+  '寺崎ひな': '寺崎',
+  '小久保宏紀': '小久保',
+  '島田和奏': '島田',
+  '中塚智': '中塚',
+  '太田陽菜': '太田',
+  '相馬寿樹': '相馬',
+  '実倉萌笑': '実倉'
+};
+
+function getShortTalentName(fullName) {
+  if (!fullName) return '';
+  return TALENT_SHORT_NAMES[fullName] || fullName.substring(0, 2);
+}
+
+function fmtDateWithDay(d) {
+  if (!d || isNaN(d)) return '';
+  const days = ['日', '月', '火', '水', '木', '金', '土'];
+  return `${d.getMonth() + 1}/${d.getDate()}(${days[d.getDay()]})`;
+}
+
+function getWeeklyDateWindow(period) {
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+  const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+  let start, end, scheduleEnd, modeName;
+
+  if (period === 'this_week') {
+    const day = todayStart.getDay();
+    const diffToMon = (day + 6) % 7;
+    start = new Date(todayStart);
+    start.setDate(todayStart.getDate() - diffToMon);
+    end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    end.setHours(23, 59, 59);
+    scheduleEnd = new Date(end);
+    scheduleEnd.setDate(end.getDate() + 7);
+    modeName = '今週（月〜日）';
+  } else if (period === 'last_week') {
+    const day = todayStart.getDay();
+    const diffToMon = (day + 6) % 7;
+    start = new Date(todayStart);
+    start.setDate(todayStart.getDate() - diffToMon - 7);
+    end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    end.setHours(23, 59, 59);
+    scheduleEnd = new Date(todayEnd);
+    scheduleEnd.setDate(todayEnd.getDate() + 7);
+    modeName = '先週（月〜日）';
+  } else if (period === '14d') {
+    start = new Date(todayStart);
+    start.setDate(todayStart.getDate() - 14);
+    end = todayEnd;
+    scheduleEnd = new Date(todayEnd);
+    scheduleEnd.setDate(todayEnd.getDate() + 14);
+    modeName = '直近14日間';
+  } else if (period === '30d') {
+    start = new Date(todayStart);
+    start.setDate(todayStart.getDate() - 30);
+    end = todayEnd;
+    scheduleEnd = new Date(todayEnd);
+    scheduleEnd.setDate(todayEnd.getDate() + 30);
+    modeName = '直近30日間';
+  } else {
+    start = new Date(todayStart);
+    start.setDate(todayStart.getDate() - 7);
+    end = todayEnd;
+    scheduleEnd = new Date(todayEnd);
+    scheduleEnd.setDate(todayEnd.getDate() + 14);
+    modeName = '直近7日間';
+  }
+
+  return {
+    start,
+    end,
+    todayStart,
+    scheduleEnd,
+    modeName,
+    rangeStr: `${fmtDateWithDay(start)} 〜 ${fmtDateWithDay(end)}`,
+    schedRangeStr: `${fmtDateWithDay(todayStart)} 〜 ${fmtDateWithDay(scheduleEnd)}`
+  };
+}
+
+function setWeeklyPeriod(p) {
+  weeklyPeriod = p;
+  document.querySelectorAll('#weeklyPeriodFilter .filter-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.wperiod === p);
+  });
+  renderWeeklyReport();
+}
+
+function toggleWeeklyActiveOnly() {
+  weeklyActiveOnly = !weeklyActiveOnly;
+  const btn = document.getElementById('btnWeeklyActiveOnly');
+  if (btn) btn.classList.toggle('active', weeklyActiveOnly);
+  renderWeeklyReport();
+}
+
+function toggleWeeklyIncludeCal() {
+  weeklyIncludeCal = !weeklyIncludeCal;
+  const btn = document.getElementById('btnWeeklyIncludeCal');
+  if (btn) btn.classList.toggle('active', weeklyIncludeCal);
+  renderWeeklyReport();
+}
+
+function setWeeklyTextFormat(fmt) {
+  weeklyTextFormat = fmt;
+  document.getElementById('btnDigestFormatSimple')?.classList.toggle('active', fmt === 'simple');
+  document.getElementById('btnDigestFormatDetail')?.classList.toggle('active', fmt === 'detail');
+  renderWeeklyReport();
+}
+
+function toggleWeeklyRawText() {
+  const wrap = document.getElementById('weeklyRawTextWrap');
+  if (wrap) wrap.classList.toggle('hidden');
+}
+
+function copyWeeklyReportText() {
+  const ta = document.getElementById('weeklyReportTextarea');
+  const text = ta && ta.value ? ta.value : buildWeeklyReportPlainText(buildWeeklyReportData());
+  if (!text) {
+    showToast('⚠️ コピーする報告データがありません');
+    return;
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('📋 週次報告ハイライトをクリップボードにコピーしました！');
+    }).catch(() => fallbackCopy(text, '週次報告ハイライト'));
+  } else {
+    fallbackCopy(text, '週次報告ハイライト');
+  }
+}
+
+function buildWeeklyReportData() {
+  const win = getWeeklyDateWindow(weeklyPeriod);
+  const talents = currentTalent === 'all'
+    ? [...MANAGED_TALENTS]
+    : MANAGED_TALENTS.filter(t => t === currentTalent);
+
+  // 追加タレントがデータ内にいれば補完
+  if (currentTalent === 'all') {
+    allData.forEach(d => {
+      const n = normalizeTalentFullName(d['タレント名']);
+      if (n && !talents.includes(n)) talents.push(n);
+    });
+  }
+
+  const inRange = (dt, s, e) => dt && dt >= s && dt <= e;
+
+  const talentReports = talents.map(talent => {
+    const shortName = getShortTalentName(talent);
+    const tData = allData.filter(d => normalizeTalentFullName(d['タレント名']) === talent || d['タレント名'] === talent);
+
+    const periodAuditions = [];
+    const activeAuditions = [];
+    const sheetSchedules = [];
+
+    tData.forEach(d => {
+      const status = (d['ステータス'] || '').trim();
+      const result = (d['結果'] || '').trim();
+      const isFail = result.startsWith('不合格') || result.startsWith('見送り') || result.startsWith('辞退');
+      const isPass = result === '合格' || status === '受注';
+      const isActive = status !== '完了' && !isFail;
+
+      const regDt = parseDate(d['登録日']);
+      const updDt = parseDate(d['更新日']);
+      const dlDt = parseDate(d['締切日']);
+      const resDt = parseDate(d['結果発表日'] || d['結果発表']);
+      const relDt = parseDate(d['公開日']);
+      const audDateStrs = (d['オーディション日'] || '').split(',').map(s => s.trim()).filter(Boolean);
+      const audDts = audDateStrs.map(s => parseDate(s)).filter(Boolean);
+
+      const reasons = [];
+      let latestTouch = updDt || regDt || dlDt || null;
+      if (inRange(regDt, win.start, win.end)) reasons.push(`🆕 新規(${fmtDate(d['登録日'])})`);
+      else if (inRange(updDt, win.start, win.end)) reasons.push(`🔄 更新(${fmtDate(d['更新日'])})`);
+      if (inRange(dlDt, win.start, win.end)) reasons.push(`〆切(${fmtDate(d['締切日'])})`);
+      if (audDts.some(dt => inRange(dt, win.start, win.end))) reasons.push('🎤 今週AD');
+      if (inRange(resDt, win.start, win.end)) reasons.push(`📋 結果発表(${fmtDate(d['結果発表日'] || d['結果発表'])})`);
+      if (inRange(relDt, win.start, win.end)) reasons.push(`📺 公開(${fmtDate(d['公開日'])})`);
+
+      const entry = {
+        raw: d,
+        id: d['ID'],
+        name: d['オーディション名'] || '（案件名なし）',
+        type: d['案件種別'] || 'オーディション',
+        genre: d['ジャンル'] || '',
+        status,
+        result,
+        action: d['アクション'] || '',
+        notes: d['備考'] || '',
+        deadline: d['締切日'] || '',
+        auditionDate: d['オーディション日'] || '',
+        isPass,
+        isFail,
+        isActive,
+        reasons,
+        isPeriodUpdate: reasons.length > 0,
+        sortTime: latestTouch ? latestTouch.getTime() : 0
+      };
+
+      if (entry.isPeriodUpdate) {
+        periodAuditions.push(entry);
+      } else if (isActive || isPass) {
+        activeAuditions.push(entry);
+      }
+
+      // スプシ上の日程（AD日・公開日・結果発表日・今後の締切）をスケジュールへ収集
+      if (!isFail) {
+        audDts.forEach(dt => {
+          if (inRange(dt, win.start, win.scheduleEnd)) {
+            sheetSchedules.push({
+              date: dt,
+              dateStr: fmtDateWithDay(dt),
+              timeStr: '',
+              badge: '🎤 AD予定',
+              badgeColor: '#e2000f',
+              title: d['オーディション名'] || '',
+              sub: status,
+              source: 'sheet'
+            });
+          }
+        });
+        if (inRange(relDt, win.start, win.scheduleEnd)) {
+          sheetSchedules.push({
+            date: relDt,
+            dateStr: fmtDateWithDay(relDt),
+            timeStr: '',
+            badge: '📺 OA/公開',
+            badgeColor: '#10B981',
+            title: d['オーディション名'] || '',
+            sub: d['ジャンル'] || '',
+            source: 'sheet'
+          });
+        }
+        if (inRange(resDt, win.start, win.scheduleEnd)) {
+          sheetSchedules.push({
+            date: resDt,
+            dateStr: fmtDateWithDay(resDt),
+            timeStr: '',
+            badge: '📋 結果発表',
+            badgeColor: '#F59E0B',
+            title: d['オーディション名'] || '',
+            sub: status,
+            source: 'sheet'
+          });
+        }
+        if (isActive && inRange(dlDt, win.todayStart, win.scheduleEnd)) {
+          sheetSchedules.push({
+            date: dlDt,
+            dateStr: fmtDateWithDay(dlDt),
+            timeStr: '',
+            badge: '⏰ 締切',
+            badgeColor: '#6366F1',
+            title: d['オーディション名'] || '',
+            sub: d['アクション'] || status,
+            source: 'sheet'
+          });
+        }
+      }
+    });
+
+    // Googleカレンダー予定の統合（私用・日常レッスン等のノイズは除外）
+    const gcalSchedules = [];
+    const noiseRegex = /(私用|歯医者|整骨院|脱毛|ホワイトニング|ご飯|ランチ|ディズニー|誕生日|おかあさん|引越し|受け取り|レッスン|タップ|シアタージャズ|話し方|見学|^映画$|^P1$|地元帰るので)/;
+    if (weeklyIncludeCal && Array.isArray(calendarEvents)) {
+      calendarEvents.forEach(ev => {
+        const evTalent = normalizeTalentFullName(ev.talent || '');
+        const title = (ev.title || '').trim();
+        const titleMatchesTalent = !evTalent && title.includes(shortName);
+        if (evTalent !== talent && ev.talent !== talent && !titleMatchesTalent) return;
+        if (noiseRegex.test(title)) return;
+        const st = new Date(ev.start);
+        if (isNaN(st) || !inRange(st, win.start, win.scheduleEnd)) return;
+        let timeStr = '終日';
+        if (ev.allDay === false) {
+          const hh = String(st.getHours()).padStart(2, '0');
+          const mm = String(st.getMinutes()).padStart(2, '0');
+          timeStr = `${hh}:${mm}`;
+        }
+        gcalSchedules.push({
+          date: st,
+          dateStr: fmtDateWithDay(st),
+          timeStr,
+          badge: '📅 Gカレ',
+          badgeColor: '#8B5CF6',
+          title: title || '（予定）',
+          sub: ev.location ? `📍${ev.location}` : '',
+          source: 'gcal'
+        });
+      });
+    }
+
+    // 重複除外して日付昇順ソート
+    const mergedSchedules = [...gcalSchedules];
+    sheetSchedules.forEach(ss => {
+      const dup = gcalSchedules.some(gc =>
+        gc.date.toDateString() === ss.date.toDateString() &&
+        (gc.title.includes(ss.title.substring(0, 5)) || ss.title.includes(gc.title.substring(0, 5)))
+      );
+      if (!dup) mergedSchedules.push(ss);
+    });
+    mergedSchedules.sort((a, b) => a.date - b.date);
+
+    // 営業アタックの動き
+    const salesMoves = [];
+    (allSalesAttackData || []).forEach(s => {
+      const prop = s['提案タレント'] || '';
+      if (!prop.includes(talent) && !prop.includes(shortName)) return;
+      const lastDt = parseDate(s['最終アプローチ日']);
+      const updDt = parseDate(s['更新日'] || s['登録日']);
+      const nextDt = parseDate(s['次回アクション予定日']);
+      const st = s['アタックステータス'] || '';
+      const isRecentSales = inRange(lastDt, win.start, win.end) || inRange(updDt, win.start, win.end) || inRange(nextDt, win.start, win.scheduleEnd);
+      const isOngoingSales = ['コンタクト中', '面談済', '案件検討中', 'WS講師依頼済', '受注・決定'].includes(st);
+      if (isRecentSales || isOngoingSales) {
+        salesMoves.push({
+          id: s['ID'] || s['社名'],
+          company: s['社名'] || '',
+          type: s['アプローチ先種別'] || '',
+          status: st,
+          rating: s['確度/感触'] || '',
+          lastDate: s['最終アプローチ日'] ? fmtDate(s['最終アプローチ日']) : '',
+          nextDate: s['次回アクション予定日'] ? fmtDate(s['次回アクション予定日']) : '',
+          nextAction: s['次回アクション内容'] || '',
+          isRecentSales
+        });
+      }
+    });
+
+    // ニュースの動き
+    const newsMoves = (allNewsData || []).filter(n => {
+      if (normalizeTalentFullName(n['タレント名']) !== talent && n['タレント名'] !== talent) return false;
+      const nd = parseDate(n['日付']);
+      return inRange(nd, win.start, win.end);
+    });
+
+    return {
+      talent,
+      shortName,
+      periodAuditions,
+      activeAuditions,
+      schedules: mergedSchedules,
+      salesMoves,
+      newsMoves
+    };
+  });
+
+  // 全タレントで期間内更新が0件の場合（フォールバックデータ等）、進行中案件をハイライト対象として自動表示
+  const anyStrictPeriodUpdate = talentReports.some(r => r.periodAuditions.length > 0 || r.schedules.length > 0 || r.salesMoves.some(s => s.isRecentSales));
+
+  talentReports.forEach(r => {
+    r.periodAuditions.sort((a, b) => b.sortTime - a.sortTime);
+    r.activeAuditions.sort((a, b) => b.sortTime - a.sortTime);
+
+    if (r.periodAuditions.length > 0) {
+      // 期間内更新がある場合は、重要な進行中案件（2次以降AD・応募準備・書類結果待ち・結果待ち・受注）も最大3件補足
+      const extraActive = r.activeAuditions.filter(a => ['受注', '2次以降AD', '応募準備', '書類結果待ち', '結果待ち'].includes(a.status)).slice(0, 3);
+      r.displayAuditions = [...r.periodAuditions, ...extraActive];
+    } else if (!anyStrictPeriodUpdate || r.activeAuditions.some(a => ['受注', '2次以降AD', '応募準備', '書類結果待ち', '結果待ち'].includes(a.status))) {
+      r.displayAuditions = r.activeAuditions.filter(a => ['受注', '2次以降AD', '応募準備', '書類結果待ち', '結果待ち'].includes(a.status)).slice(0, 4);
+    } else {
+      r.displayAuditions = [];
+    }
+
+    r.hasMovement = r.displayAuditions.length > 0 || r.schedules.length > 0 || r.salesMoves.length > 0 || r.newsMoves.length > 0;
+    r.oneLineSummary = formatTalentOneLineSummary(r);
+  });
+
+  return { win, talentReports, anyStrictPeriodUpdate };
+}
+
+function formatTalentOneLineSummary(r) {
+  const parts = [];
+
+  if (r.displayAuditions.length > 0) {
+    const itemsStr = r.displayAuditions.slice(0, 4).map(a => {
+      const stateStr = a.isPass ? '🎉合格/受注' : a.status;
+      const reasonStr = a.reasons.length ? `・${a.reasons[0]}` : (a.action ? `・${a.action}` : '');
+      return `${a.name}（${stateStr}${reasonStr}）`;
+    }).join('、');
+    const more = r.displayAuditions.length > 4 ? ` ほか${r.displayAuditions.length - 4}件` : '';
+    parts.push(`【案件】${itemsStr}${more}`);
+  }
+
+  if (r.schedules.length > 0) {
+    const schedStr = r.schedules.slice(0, 3).map(s => {
+      const t = s.timeStr && s.timeStr !== '終日' ? ` ${s.timeStr}` : '';
+      return `${s.dateStr}${t} ${s.title}`;
+    }).join('、');
+    const more = r.schedules.length > 3 ? ` ほか${r.schedules.length - 3}件` : '';
+    parts.push(`【予定】${schedStr}${more}`);
+  }
+
+  if (r.salesMoves.length > 0) {
+    const salesStr = r.salesMoves.slice(0, 2).map(s => {
+      return `${s.company}（${s.status}${s.nextDate ? '・次回' + s.nextDate : ''}）`;
+    }).join('、');
+    parts.push(`【営業】${salesStr}`);
+  }
+
+  if (r.newsMoves.length > 0) {
+    parts.push(`【ニュース】${r.newsMoves[0]['タイトル']}`);
+  }
+
+  return parts.length > 0 ? parts.join(' ／ ') : '期間内の特筆アップデート・予定なし';
+}
+
+function buildWeeklyReportPlainText(reportData) {
+  const { win, talentReports } = reportData;
+  const list = weeklyActiveOnly ? talentReports.filter(r => r.hasMovement) : talentReports;
+  if (list.length === 0) {
+    return `■ 週次報告ハイライト（${win.modeName}：${win.rangeStr}）\n該当期間の動き・予定はありません。`;
+  }
+
+  if (weeklyTextFormat === 'detail') {
+    const blocks = list.map(r => {
+      const lines = [`【${r.shortName}（${r.talent}）】`];
+      r.displayAuditions.forEach(a => {
+        const stateStr = a.isPass ? '🎉合格/受注' : a.status;
+        const rTag = a.reasons.length ? ` [${a.reasons.join('/')}]` : '';
+        const act = a.action ? `（👉 ${a.action}）` : '';
+        lines.push(`・[案件] ${a.name}｜${stateStr}${rTag}${act}`);
+      });
+      r.schedules.forEach(s => {
+        const t = s.timeStr ? ` ${s.timeStr}` : '';
+        const sub = s.sub ? `（${s.sub}）` : '';
+        lines.push(`・[${s.badge}] ${s.dateStr}${t} ${s.title}${sub}`);
+      });
+      r.salesMoves.forEach(s => {
+        lines.push(`・[営業] ${s.company}｜${s.status}${s.nextAction ? '（次回: ' + s.nextAction + '）' : ''}`);
+      });
+      if (lines.length === 1) lines.push('・特筆アップデートなし');
+      return lines.join('\n');
+    });
+    return `■ 週次報告ハイライト（${win.modeName}：${win.rangeStr}）\n\n` + blocks.join('\n\n');
+  }
+
+  const lines = list.map(r => `${r.shortName}　${r.oneLineSummary}`);
+  return `■ 週次報告ハイライト（${win.modeName}：${win.rangeStr}）\n` + lines.join('\n');
+}
+
+function renderWeeklyReport() {
+  const reportData = buildWeeklyReportData();
+  const { win, talentReports } = reportData;
+  const activeReports = talentReports.filter(r => r.hasMovement);
+  const displayReports = weeklyActiveOnly ? activeReports : talentReports;
+
+  // 1. メインダッシュボード上部のクイックハイライトバナー描画
+  const dashBanner = document.getElementById('dashWeeklyHighlightBanner');
+  if (dashBanner) {
+    const previewList = activeReports.slice(0, 6);
+    const previewRowsHtml = previewList.length > 0
+      ? previewList.map(r => {
+          const c = talentColor(r.talent);
+          return `<div class="weekly-digest-row" style="padding:7px 12px;font-size:.82rem;">
+            <span class="weekly-digest-name">
+              <span class="talent-badge-sm" style="background:${c}">${escapeHtml(r.shortName)}</span>
+            </span>
+            <span class="weekly-digest-text">${escapeHtml(r.oneLineSummary)}</span>
+          </div>`;
+        }).join('')
+      : '<div style="font-size:.82rem;color:var(--text-muted);padding:4px 0;">現在表示できる動き・予定はありません</div>';
+
+    dashBanner.innerHTML = `
+      <div class="weekly-dash-banner-top">
+        <div class="weekly-dash-banner-title">
+          <span>📢 週次報告ハイライト（${escapeHtml(win.modeName)}）</span>
+          <span style="font-size:.72rem;font-weight:700;background:var(--accent-light);color:var(--accent);padding:2px 8px;border-radius:10px;">動き・予定あり ${activeReports.length}名</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-secondary btn-sm" onclick="copyWeeklyReportText()" style="padding:5px 12px;font-size:.75rem;">📋 報告文コピー</button>
+          <button class="btn btn-primary btn-sm" onclick="showSection('weekly_report')" style="padding:5px 14px;font-size:.75rem;">週次報告ページを開く →</button>
+        </div>
+      </div>
+      <div class="weekly-dash-preview-list">${previewRowsHtml}</div>
+    `;
+  }
+
+  // 2. 週次報告ページの描画
+  const periodLabelEl = document.getElementById('weeklyPeriodLabel');
+  if (periodLabelEl) {
+    periodLabelEl.textContent = `集計期間: ${win.rangeStr} （今後のスケジュール表示: ${win.schedRangeStr}）`;
+  }
+
+  const totalAudUpdates = talentReports.reduce((sum, r) => sum + r.displayAuditions.length, 0);
+  const totalSchedules = talentReports.reduce((sum, r) => sum + r.schedules.length, 0);
+  const totalSalesMoves = talentReports.reduce((sum, r) => sum + r.salesMoves.length, 0);
+
+  const kpiEl = document.getElementById('weeklyKpiStrip');
+  if (kpiEl) {
+    kpiEl.innerHTML = `
+      <div class="weekly-kpi-box"><span class="weekly-kpi-lbl">🔥 動き・予定あり</span><span class="weekly-kpi-val" style="color:var(--accent)">${activeReports.length} <small style="font-size:.75rem">名</small></span></div>
+      <div class="weekly-kpi-box"><span class="weekly-kpi-lbl">🎬 案件アップデート/進行</span><span class="weekly-kpi-val">${totalAudUpdates} <small style="font-size:.75rem">件</small></span></div>
+      <div class="weekly-kpi-box"><span class="weekly-kpi-lbl">📅 カレンダー・予定</span><span class="weekly-kpi-val">${totalSchedules} <small style="font-size:.75rem">件</small></span></div>
+      <div class="weekly-kpi-box"><span class="weekly-kpi-lbl">💼 営業提案・動き</span><span class="weekly-kpi-val">${totalSalesMoves} <small style="font-size:.75rem">件</small></span></div>
+    `;
+  }
+
+  // 3. ワンラインダイジェスト（谷口 ～ / 中塚 ～）
+  const digestListEl = document.getElementById('weeklyDigestList');
+  if (digestListEl) {
+    if (displayReports.length === 0) {
+      digestListEl.innerHTML = '<div class="empty-state" style="padding:20px;"><p>対象期間にアップデートや予定があるタレントはいません（「動き・予定ありのみ表示」をオフにすると全員表示されます）</p></div>';
+    } else {
+      digestListEl.innerHTML = displayReports.map(r => {
+        const c = talentColor(r.talent);
+        return `<div class="weekly-digest-row">
+          <span class="weekly-digest-name">
+            <span class="talent-badge-sm" style="background:${c};font-size:.75rem;padding:3px 10px;">${escapeHtml(r.shortName)}</span>
+          </span>
+          <span class="weekly-digest-text">${escapeHtml(r.oneLineSummary)}</span>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  const taEl = document.getElementById('weeklyReportTextarea');
+  if (taEl) {
+    taEl.value = buildWeeklyReportPlainText(reportData);
+  }
+
+  // 4. タレント別 詳細ハイライトカード
+  const cardsGridEl = document.getElementById('weeklyTalentCardsGrid');
+  if (!cardsGridEl) return;
+
+  if (displayReports.length === 0) {
+    cardsGridEl.innerHTML = '';
+    return;
+  }
+
+  cardsGridEl.innerHTML = displayReports.map(r => {
+    const c = talentColor(r.talent);
+    const icon = talentIcon(r.talent);
+
+    // 案件セクション
+    let audHtml = '';
+    if (r.displayAuditions.length > 0) {
+      const items = r.displayAuditions.map(a => {
+        const stBadgeColor = a.isPass ? '#10B981' : a.status === '2次以降AD' ? '#e2000f' : a.status === '応募準備' ? '#F59E0B' : '#3B82F6';
+        const reasonsHtml = a.reasons.map(rg => `<span style="font-size:.65rem;background:var(--accent-light);color:var(--accent);padding:1px 6px;border-radius:4px;font-weight:700;margin-left:4px;">${escapeHtml(rg)}</span>`).join('');
+        const actHtml = a.action ? `<span style="color:var(--text-muted);font-size:.75rem;margin-left:6px;">👉 ${escapeHtml(a.action)}</span>` : '';
+        return `<li class="weekly-bullet-item">
+          ・<strong>${escapeHtml(a.name)}</strong>
+          <span style="font-size:.66rem;background:${stBadgeColor}18;color:${stBadgeColor};border:1px solid ${stBadgeColor}44;padding:1px 6px;border-radius:4px;font-weight:700;margin-left:4px;">${escapeHtml(a.isPass ? '🎉 合格/受注' : a.status)}</span>
+          ${reasonsHtml}
+          ${actHtml}
+          <button onclick="openEditModal('${escapeHtml(a.id)}')" title="案件を編集" style="background:none;border:none;cursor:pointer;font-size:.75rem;margin-left:4px;">✏️</button>
+        </li>`;
+      }).join('');
+      audHtml = `<div>
+        <div class="weekly-sec-title">🎬 案件・オーディションの動き（${r.displayAuditions.length}件）</div>
+        <ul class="weekly-bullet-list">${items}</ul>
+      </div>`;
+    }
+
+    // カレンダー・予定セクション
+    let schedHtml = '';
+    if (r.schedules.length > 0) {
+      const items = r.schedules.map(s => {
+        const timePart = s.timeStr ? `<strong style="margin-left:4px;">${escapeHtml(s.timeStr)}</strong>` : '';
+        const subPart = s.sub ? `<span style="font-size:.72rem;color:var(--text-muted);margin-left:6px;">(${escapeHtml(s.sub)})</span>` : '';
+        return `<li class="weekly-bullet-item">
+          ・<span style="font-size:.64rem;background:${s.badgeColor}18;color:${s.badgeColor};padding:1px 5px;border-radius:4px;font-weight:700;margin-right:4px;">${escapeHtml(s.badge)}</span>
+          <strong>${escapeHtml(s.dateStr)}</strong>${timePart}
+          <span style="margin-left:4px;">${escapeHtml(s.title)}</span>${subPart}
+        </li>`;
+      }).join('');
+      schedHtml = `<div>
+        <div class="weekly-sec-title">📅 Googleカレンダー ＆ 直近スケジュール（${r.schedules.length}件）</div>
+        <ul class="weekly-bullet-list">${items}</ul>
+      </div>`;
+    }
+
+    // 営業セクション
+    let salesHtml = '';
+    if (r.salesMoves.length > 0) {
+      const items = r.salesMoves.map(s => {
+        const nextPart = s.nextAction ? `<span style="font-size:.73rem;color:var(--text-muted);margin-left:6px;">次回${s.nextDate ? '(' + escapeHtml(s.nextDate) + ')' : ''}: ${escapeHtml(s.nextAction)}</span>` : '';
+        return `<li class="weekly-bullet-item">
+          ・<strong>${escapeHtml(s.company)}</strong>
+          <span style="font-size:.65rem;background:var(--bg-alt);border:1px solid var(--border);padding:1px 6px;border-radius:4px;font-weight:700;margin-left:4px;">${escapeHtml(s.status)}</span>
+          ${nextPart}
+        </li>`;
+      }).join('');
+      salesHtml = `<div>
+        <div class="weekly-sec-title">💼 営業アタック・提案（${r.salesMoves.length}件）</div>
+        <ul class="weekly-bullet-list">${items}</ul>
+      </div>`;
+    }
+
+    // ニュースセクション
+    let newsHtml = '';
+    if (r.newsMoves.length > 0) {
+      const items = r.newsMoves.slice(0, 2).map(n => {
+        return `<li class="weekly-bullet-item">・<a href="${escapeHtml(n['リンク'] || '#')}" target="_blank" style="color:var(--accent);text-decoration:none;font-weight:600;">${escapeHtml(n['タイトル'])}</a> <span style="font-size:.7rem;color:var(--text-muted);">(${escapeHtml(n['日付'] || '')})</span></li>`;
+      }).join('');
+      newsHtml = `<div>
+        <div class="weekly-sec-title">📰 最新ニュース（${r.newsMoves.length}件）</div>
+        <ul class="weekly-bullet-list">${items}</ul>
+      </div>`;
+    }
+
+    const emptyHtml = (!audHtml && !schedHtml && !salesHtml && !newsHtml)
+      ? '<div style="font-size:.8rem;color:var(--text-muted);">この期間のアップデート・予定はありません</div>'
+      : '';
+
+    return `<div class="weekly-talent-card">
+      <div style="height:4px;background:${c};width:100%;"></div>
+      <div class="weekly-talent-card-head">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:1.2rem;">${icon}</span>
+          <span style="font-weight:900;font-size:1rem;">${escapeHtml(r.talent)}</span>
+          <span class="talent-badge-sm" style="background:${c}">${escapeHtml(r.shortName)}</span>
+        </div>
+        <div style="display:flex;gap:6px;font-size:.7rem;font-weight:700;color:var(--text-muted);">
+          <span>案件 ${r.displayAuditions.length}</span>
+          <span>・</span>
+          <span>予定 ${r.schedules.length}</span>
+          ${r.salesMoves.length ? `<span>・営業 ${r.salesMoves.length}</span>` : ''}
+        </div>
+      </div>
+      <div class="weekly-talent-card-body">
+        ${audHtml}${schedHtml}${salesHtml}${newsHtml}${emptyHtml}
+      </div>
+    </div>`;
+  }).join('');
+}

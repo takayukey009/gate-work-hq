@@ -101,7 +101,7 @@ function doPost(e) {
     if (data.action === 'delete_survey_row') {
       const sheet = ss.getSheetByName('talent_survey');
       if (sheet) {
-        const values = sheet.getDataRange().getValues();
+        const values = sheet ? sheet.getDataRange().getValues() : [];
         const targetId = String(data.id || '');
         const targetName = String(data.talentName || '');
         for (let i = values.length - 1; i >= 1; i--) {
@@ -181,12 +181,66 @@ function doPost(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
     
-    // 営業アタックシートへの追加処理
-    if (data.sheetType === 'sales_attack') {
+    // 営業アタックシートへの追加・更新（Upsert）処理
+    if (data.sheetType === 'sales_attack' || data.sheetType === 'sales_attack_update' || data.action === 'update_sales_attack') {
       const sheet = ss.getSheetByName('営業アタック');
+      if (!sheet) {
+        return ContentService
+          .createTextOutput(JSON.stringify({ success: false, error: '営業アタックシートが見つかりません' }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
       const lastRow = sheet.getLastRow();
-      const nextId = lastRow > 1 ? Number(sheet.getRange(lastRow, 1).getValue()) + 1 : 1;
+      const targetId = String(data.id || data.ID || '').trim();
+      const targetCompany = String(data.companyName || '').trim();
       
+      let foundRow = -1;
+      if (lastRow > 1) {
+        const rowValues = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
+        for (let i = 0; i < rowValues.length; i++) {
+          const cId = String(rowValues[i][0]).trim();
+          const cComp = String(rowValues[i][1]).trim();
+          if (targetId && (cId === targetId || String(Number(cId)) === String(Number(targetId)))) {
+            foundRow = i + 2;
+            break;
+          }
+          if (targetCompany && cComp === targetCompany) {
+            foundRow = i + 2;
+            break;
+          }
+        }
+      }
+
+      // 既存レコードの更新
+      if (foundRow > 1) {
+        const curRow = sheet.getRange(foundRow, 1, 1, 15).getValues()[0];
+        const actualId = curRow[0] || targetId;
+        const origRegDate = curRow[13] || today;
+        
+        sheet.getRange(foundRow, 1, 1, 15).setValues([[
+          actualId,
+          data.companyName !== undefined ? data.companyName : curRow[1],
+          data.companyType !== undefined ? data.companyType : curRow[2],
+          data.contactName !== undefined ? data.contactName : curRow[3],
+          data.contactInfo !== undefined ? data.contactInfo : curRow[4],
+          data.lastApproachDate !== undefined ? data.lastApproachDate : curRow[5],
+          data.approachMethod !== undefined ? data.approachMethod : curRow[6],
+          data.nextApproachDate !== undefined ? data.nextApproachDate : curRow[7],
+          data.nextApproachAction !== undefined ? data.nextApproachAction : curRow[8],
+          data.status !== undefined ? data.status : curRow[9],
+          data.talentName !== undefined ? data.talentName : curRow[10],
+          data.rating !== undefined ? data.rating : curRow[11],
+          data.notes !== undefined ? data.notes : curRow[12],
+          origRegDate,
+          today
+        ]]);
+        
+        return ContentService
+          .createTextOutput(JSON.stringify({ success: true, id: actualId, updated: true, row: foundRow }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+
+      // 新規追加 (Create)
+      const nextId = lastRow > 1 ? Number(sheet.getRange(lastRow, 1).getValue()) + 1 : 1;
       sheet.appendRow([
         nextId,
         data.companyName || '',        // B: 社名
@@ -206,7 +260,7 @@ function doPost(e) {
       ]);
       
       return ContentService
-        .createTextOutput(JSON.stringify({ success: true, id: nextId }))
+        .createTextOutput(JSON.stringify({ success: true, id: nextId, created: true }))
         .setMimeType(ContentService.MimeType.JSON);
     }
     
@@ -393,19 +447,28 @@ function doPost(e) {
 // ============================================================
 const SALES_SPREADSHEET_ID = '107oRwGTZM7-_OKOwjgw_efgXYDQJTarm6Da1SsJjVOg';
 const SALES_SHEET_NAME = '2025年7月~2026年6月';
-const MANAGED_TALENTS = ['谷口彩菜','寺崎ひな','小久保宏紀','島田和奏','中塚智','太田陽菜','相馬寿樹'];
+const MANAGED_TALENTS = ['谷口彩菜','寺崎ひな','小久保宏紀','島田和奏','中塚智','太田陽菜','相馬寿樹','実倉萌笑'];
 
 // タレント別カレンダーIDをマスタから動的生成
 function getTalentCalendars() {
   const ss = (SpreadsheetApp.getActiveSpreadsheet() || SpreadsheetApp.openById(SPREADSHEET_ID));
-  let sheet = ss.getSheetByName('タレントマスタ');
+  let sheet = ss.getSheetByName('talents') || ss.getSheetByName('タレントマスタ');
   if (!sheet) {
     getTalentMasterInternal();
-    sheet = ss.getSheetByName('タレントマスタ');
+    sheet = ss.getSheetByName('talents') || ss.getSheetByName('タレントマスタ');
   }
   
-  const values = sheet.getDataRange().getValues();
-  const cals = {};
+  const values = sheet ? sheet.getDataRange().getValues() : [];
+  const cals = {
+    '谷口彩菜': 'ayana.taniguchi@gate-agency.com',
+    '寺崎ひな': 'hina.terasaki@gate-agency.com',
+    '小久保宏紀': 'hiroki.kokubo@gate-agency.com',
+    '島田和奏': 'wakana.shimada@gate-agency.com',
+    '中塚智': 'satoshi.nakatsuka@gate-agency.com',
+    '太田陽菜': 'hina.ota@gate-agency.com',
+    '相馬寿樹': 'toshiki.soma@gate-agency.com',
+    '実倉萌笑': 'moe.mikura@gate-agency.com'
+  };
   for (let i = 1; i < values.length; i++) {
     const row = values[i];
     const name = String(row[0] || '').trim();
@@ -523,7 +586,7 @@ function fixValidation() {
     const talentRange = sheet.getRange('B2:B199');
     talentRange.clearDataValidations();
     const talentRule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(['谷口彩菜', '寺崎ひな', '小久保宏紀', '島田和奏', '中塚智', '太田陽菜', '相馬寿樹'], true)
+      .requireValueInList(['谷口彩菜', '寺崎ひな', '小久保宏紀', '島田和奏', '中塚智', '太田陽菜', '相馬寿樹', '実倉萌笑'], true)
       .setAllowInvalid(true)
       .setHelpText('タレントを選択してください')
       .build();
@@ -830,7 +893,7 @@ function updateStatusValidation() {
 // タレントニュース自動収集処理
 // ============================================================
 function collectNews() {
-  const talents = ['谷口彩菜', '寺崎ひな', '小久保宏紀', '島田和奏', '中塚智', '太田陽菜'];
+  const talents = ['谷口彩菜', '寺崎ひな', '小久保宏紀', '島田和奏', '中塚智', '太田陽菜', '実倉萌笑'];
   const ss = (SpreadsheetApp.getActiveSpreadsheet() || SpreadsheetApp.openById(SPREADSHEET_ID));
   
   // 「ニュース」シートがなければ作成
@@ -1304,7 +1367,8 @@ function getTalentMasterInternal() {
       ['島田和奏', '#EDFBEF', '🌟', 'wakana.shimada@gate-agency.com', '在籍'],
       ['中塚智', '#F5F3FF', '🎬', 'satoshi.nakatsuka@gate-agency.com', '在籍'],
       ['太田陽菜', '#FFF8E1', '🌻', 'hina.ota@gate-agency.com', '在籍'],
-      ['相馬寿樹', '#F3F4F6', '👤', 'toshiki.soma@gate-agency.com', '在籍']
+      ['相馬寿樹', '#F3F4F6', '👤', 'toshiki.soma@gate-agency.com', '在籍'],
+      ['実倉萌笑', '#E6FFFA', '🌷', 'moe.mikura@gate-agency.com', '在籍']
     ];
     initialTalents.forEach(function(row) {
       sheet.appendRow(row);
@@ -1355,7 +1419,8 @@ function normalizeTalentName(name) {
     '太田': '太田陽菜',
     '寺崎': '寺崎ひな',
     '中塚': '中塚智',
-    '相馬': '相馬寿樹'
+    '相馬': '相馬寿樹',
+    '実倉': '実倉萌笑'
   };
   return map[s] || s;
 }
@@ -1400,7 +1465,7 @@ function findTalentByKey(key) {
   const ss = (SpreadsheetApp.getActiveSpreadsheet() || SpreadsheetApp.openById(SPREADSHEET_ID));
   const sheet = ss.getSheetByName('talents');
   if (!sheet) return null;
-  const values = sheet.getDataRange().getValues();
+  const values = sheet ? sheet.getDataRange().getValues() : [];
   if (values.length < 2) return null;
   
   const headers = values[0].map(function(h) { return String(h).trim(); });
@@ -1435,7 +1500,7 @@ function getSurveyRawByName(name) {
     const ss = (SpreadsheetApp.getActiveSpreadsheet() || SpreadsheetApp.openById(SPREADSHEET_ID));
     const sheet = ss.getSheetByName('talent_survey');
     if (!sheet || sheet.getLastRow() < 2) return '{}';
-    const values = sheet.getDataRange().getValues();
+    const values = sheet ? sheet.getDataRange().getValues() : [];
     const headers = values[0].map(String);
     const nameCol = headers.indexOf('タレント名');
     const rawCol = headers.indexOf('RAWデータ');
